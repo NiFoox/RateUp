@@ -68,7 +68,6 @@ export default app;
 // TODO:
 // - Refactor dto (matar validators y meter todo en dto por separado)
 // - Usar ORM tipo TypeORM o Prisma?
-// - Middleware de error handling global?
 // - Usar más los types en vez de tanto any?
 // - Más tests
 // - Levantar api en docker?

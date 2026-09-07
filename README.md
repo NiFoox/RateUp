@@ -8,6 +8,10 @@ Autenticación: JWT (Bearer Token) en el header `Authorization`
 
 ---
 
+## Primera entrega de refactor del backend
+
+La [guía de estudio y verificación](docs/backend-cleanup-01.md) explica la separación del módulo de juegos, el manejo común de errores, las pruebas y los cambios de comportamiento.
+
 # Autenticación
 
 ## POST `/auth/login`
@@ -679,9 +683,11 @@ Solo accesible para administradores.
 
 ### Reglas adicionales
 
-- El nombre del juego debe ser único; si el nombre ya existe, se devuelve un error `400`.
+- El nombre del juego debe ser único; si el nombre ya existe, se devuelve `409` con `code: GAME_NAME_TAKEN` y `field: name`. La restricción de la base también se traduce si el conflicto ocurre durante la escritura.
 
 **Response 201:**
+
+Incluye el header `Location: /api/games/<id>`, que apunta al recurso creado.
 
 ```json
 {
@@ -694,7 +700,8 @@ Solo accesible para administradores.
 
 **Posibles errores:**
 
-- 400 — El nombre ya existe  
+- 400 — Datos inválidos
+- 409 — El nombre ya existe (`GAME_NAME_TAKEN`)
 - 401 — No autenticado  
 - 403 — Solo un administrador puede crear juegos  
 - 500 — Error en el servidor
@@ -714,7 +721,7 @@ Obtiene un juego por su ID.
 - id  
   - obligatorio  
   - número entero  
-  - mayor que 0  
+  - mayor que 0 y como máximo 2147483647 (`SERIAL` de PostgreSQL)
 
 **Response 200:**
 
@@ -729,14 +736,14 @@ Obtiene un juego por su ID.
 
 **Posibles errores:**
 
-- 404 — Juego no encontrado
+- 404 — Juego no encontrado (`GAME_NOT_FOUND`)
 
 ---
 
 ## GET `/games`
 
 Lista juegos con soporte de paginación, búsqueda y filtrado por género.  
-Si `all = true`, devuelve **todos los juegos** sin paginación.
+Si `all = true`, devuelve **todos los juegos que coinciden con los filtros** sin paginación.
 
 **Query params:**
 
@@ -752,6 +759,7 @@ Si `all = true`, devuelve **todos los juegos** sin paginación.
   - opcional  
   - número entero  
   - mínimo: 1  
+  - máximo: 2147483647
   - valor por defecto: 1  
 
 - limit  
@@ -775,9 +783,10 @@ Si `all = true`, devuelve **todos los juegos** sin paginación.
 
 - all  
   - opcional  
-  - boolean  
+  - textos `true` o `false` en la URL (se convierten a boolean)
+  - otros valores no vacíos se rechazan con `400`
   - valor por defecto: false  
-  - si es `true`, se ignoran `page` y `limit` y se devuelven todos los juegos
+  - si es `true`, se ignoran `page` y `limit` y se aplican `search` y `genre` al listado completo
 
 ---
 
@@ -848,7 +857,7 @@ Solo accesible para administradores.
 - id  
   - obligatorio  
   - número entero  
-  - mayor que 0  
+  - mayor que 0 y como máximo 2147483647 (`SERIAL` de PostgreSQL)
 
 **Body:**
 
@@ -906,8 +915,9 @@ Solo accesible para administradores.
 
 - 401 — No autenticado  
 - 403 — Solo un administrador puede actualizar juegos  
-- 404 — Juego no encontrado  
+- 404 — Juego no encontrado (`GAME_NOT_FOUND`)
 - 400 — Body inválido (no cumple las validaciones del esquema)
+- 409 — El nuevo nombre ya existe (`GAME_NAME_TAKEN`)
 
 ---
 
@@ -929,7 +939,7 @@ Solo accesible para administradores.
 - id  
   - obligatorio  
   - número entero  
-  - mayor que 0  
+  - mayor que 0 y como máximo 2147483647 (`SERIAL` de PostgreSQL)
 
 ### Reglas de autorización
 
@@ -944,7 +954,7 @@ _No content._
 
 - 401 — No autenticado  
 - 403 — Solo un administrador puede eliminar juegos  
-- 404 — Juego no encontrado
+- 404 — Juego no encontrado (`GAME_NOT_FOUND`)
 
 ---
 
