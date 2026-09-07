@@ -1,108 +1,51 @@
-import { Request, Response } from 'express';
-import type { GameRepository } from './game.repository.interface.js';
-import { Game } from './game.entity.js';
-import {
-  GameCreateSchema,
-  GameUpdateSchema,
-  GameIdParamSchema,
-  GameListQuerySchema,
-  type GameCreateDTO,
-  type GameUpdateDTO,
-  type GameIdParamDTO,
-  type GameListQueryDTO,
-} from './validators/game.validation.js';
+import type { Request, Response } from 'express';
+import type { ValidatedLocals } from '../shared/middlewares/validate.js';
+import type { GameService } from './game.service.js';
+import type { GameCreateDto } from './dto/create-game.dto.js';
+import type { GameUpdateDto } from './dto/update-game.dto.js';
+import type { GameIdParamDto } from './dto/game-id.dto.js';
+import type { GameListQueryDto } from './dto/list-games.dto.js';
+import type { GameDto, GameListDto } from './dto/game.dto.js';
 
 export class GameController {
-  constructor(private readonly repo: GameRepository) {}
+  constructor(private readonly service: GameService) {}
 
-  // POST /api/games (ADMIN crea juegos)
-  async create(req: Request, res: Response) {
-    const body: GameCreateDTO =
-      (res.locals?.validated?.body as GameCreateDTO) ??
-      GameCreateSchema.parse(req.body);
-
-    const { name, description, genre } = body;
-
-    if (await this.repo.findByName(name)) {
-      return res.status(400).json({ error: 'El nombre ya existe' });
-    }
-
-    const game = new Game(name, description, genre);
-    const saved = await this.repo.create(game);
-
-    return res.status(201).location(`/games/${saved.id}`).json(saved);
+  async create(
+    _req: Request,
+    res: Response<GameDto, ValidatedLocals<{ body: GameCreateDto }>>,
+  ): Promise<void> {
+    const game = await this.service.create(res.locals.validated.body);
+    res.status(201).location(`/api/games/${game.id}`).json(game);
   }
 
-  // GET /api/games/:id (Público)
-  async getById(req: Request, res: Response) {
-    const params: GameIdParamDTO =
-      (res.locals?.validated?.params as GameIdParamDTO) ??
-      GameIdParamSchema.parse(req.params);
-
-    const game = await this.repo.findById(params.id);
-    return game
-      ? res.json(game)
-      : res.status(404).json({ error: 'Juego no encontrado' });
+  async getById(
+    _req: Request,
+    res: Response<GameDto, ValidatedLocals<{ params: GameIdParamDto }>>,
+  ): Promise<void> {
+    const game = await this.service.getById(res.locals.validated.params.id);
+    res.json(game);
   }
 
-  // GET /api/games (Público, paginado y con filtros)
-  async list(req: Request, res: Response) {
-    const q: GameListQueryDTO =
-      (res.locals?.validated?.query as GameListQueryDTO) ??
-      GameListQuerySchema.parse(req.query);
-
-    const page = q.page ?? 1;
-    const limit = q.limit ?? 20;
-    const { search, genre, all } = q;
-
-    if (all) {
-      const games = await this.repo.getAll();
-      return res.json(games);
-      // return res.json({ total: games.length, data: games });
-    }
-
-    const offset = (page - 1) * limit;
-
-    const { data, total } = await this.repo.getPaginated(offset, limit, {
-      search,
-      genre,
-    });
-
-    return res.json({
-      page,
-      limit,
-      total,
-      data,
-    });
+  async list(
+    _req: Request,
+    res: Response<GameListDto, ValidatedLocals<{ query: GameListQueryDto }>>,
+  ): Promise<void> {
+    res.json(await this.service.list(res.locals.validated.query));
   }
 
-  // PATCH /api/games/:id (ADMIN)
-  async patch(req: Request, res: Response) {
-    const params: GameIdParamDTO =
-      (res.locals?.validated?.params as GameIdParamDTO) ??
-      GameIdParamSchema.parse(req.params);
-
-    const body: GameUpdateDTO =
-      (res.locals?.validated?.body as GameUpdateDTO) ??
-      GameUpdateSchema.parse(req.body);
-
-    // body ya está validado y es parcial, matchea con Partial<Game>
-    const patched = await this.repo.patch(params.id, body);
-
-    return patched
-      ? res.json(patched)
-      : res.status(404).json({ error: 'Juego no encontrado' });
+  async patch(
+    _req: Request,
+    res: Response<GameDto, ValidatedLocals<{ params: GameIdParamDto; body: GameUpdateDto }>>,
+  ): Promise<void> {
+    const { params, body } = res.locals.validated;
+    res.json(await this.service.patch(params.id, body));
   }
 
-  // DELETE /api/games/:id (ADMIN)
-  async delete(req: Request, res: Response) {
-    const params: GameIdParamDTO =
-      (res.locals?.validated?.params as GameIdParamDTO) ??
-      GameIdParamSchema.parse(req.params);
-
-    const deleted = await this.repo.delete(params.id);
-    return deleted
-      ? res.status(204).send()
-      : res.status(404).json({ error: 'Juego no encontrado' });
+  async delete(
+    _req: Request,
+    res: Response<void, ValidatedLocals<{ params: GameIdParamDto }>>,
+  ): Promise<void> {
+    await this.service.delete(res.locals.validated.params.id);
+    res.status(204).send();
   }
 }

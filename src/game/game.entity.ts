@@ -6,3 +6,5 @@ export class Game {
     public id?: number,
   ) {}
 }
+
+export type StoredGame = Game & { id: number };

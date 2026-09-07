@@ -27,7 +27,7 @@ app.use(
 app.use(express.json({ limit: '100kb' }));
 app.use(helmet());
 
-app.use('/api/games', buildGameRouter(container.gameRepository));
+app.use('/api/games', buildGameRouter(container.gameService));
 app.use('/api/reviews',   buildReviewRouter(
     container.reviewRepository,
     container.reviewCommentRepository,

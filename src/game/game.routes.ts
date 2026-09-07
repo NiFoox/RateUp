@@ -1,22 +1,16 @@
 import { Router } from 'express';
-import {
-  validateBody,
-  validateParams,
-  validateQuery,
-} from '../shared/middlewares/validate.js';
+import { validateBody, validateParams, validateQuery } from '../shared/middlewares/validate.js';
 import { requireAuth, requireRole } from '../shared/middlewares/auth.js';
-import {
-  GameCreateSchema,
-  GameUpdateSchema,
-  GameIdParamSchema,
-  GameListQuerySchema,
-} from './validators/game.validation.js';
+import { GameCreateSchema } from './dto/create-game.dto.js';
+import { GameUpdateSchema } from './dto/update-game.dto.js';
+import { GameIdParamSchema } from './dto/game-id.dto.js';
+import { GameListQuerySchema } from './dto/list-games.dto.js';
 import { GameController } from './game.controller.js';
-import type { GameRepository } from './game.repository.interface.js';
+import type { GameService } from './game.service.js';
 
-export default function buildGameRouter(repo: GameRepository) {
+export default function buildGameRouter(service: GameService) {
   const gameRouter = Router();
-  const controller = new GameController(repo);
+  const controller = new GameController(service);
 
   // Create (solo ADMIN)
   gameRouter.post(
@@ -28,18 +22,10 @@ export default function buildGameRouter(repo: GameRepository) {
   );
 
   // Read (by id) - público
-  gameRouter.get(
-    '/:id',
-    validateParams(GameIdParamSchema),
-    controller.getById.bind(controller),
-  );
+  gameRouter.get('/:id', validateParams(GameIdParamSchema), controller.getById.bind(controller));
 
   // List (paginado / filtros) - público
-  gameRouter.get(
-    '/',
-    validateQuery(GameListQuerySchema),
-    controller.list.bind(controller),
-  );
+  gameRouter.get('/', validateQuery(GameListQuerySchema), controller.list.bind(controller));
 
   // Update (PATCH) - solo ADMIN
   gameRouter.patch(

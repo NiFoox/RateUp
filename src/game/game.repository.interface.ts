@@ -1,32 +1,24 @@
-import { Game } from './game.entity.js';
+import type { Game, StoredGame } from './game.entity.js';
 import type { TopGameDTO } from './dto/top-game.dto.js';
 
+export interface GameFilters {
+  search?: string;
+  genre?: string;
+}
+
+export type GameChanges = Partial<Pick<Game, 'name' | 'description' | 'genre'>>;
+
 export interface GameRepository {
-  // Create
-  create(game: Game): Promise<Game>;
-
-  // Read
-  findById(id: number): Promise<Game | null>;
-  findByName(name: string): Promise<Game | null>;
-
+  create(game: Game): Promise<StoredGame>;
+  findById(id: number): Promise<StoredGame | null>;
+  findByName(name: string): Promise<StoredGame | null>;
   getPaginated(
     offset: number,
     limit: number,
-    opts?: { search?: string; genre?: string },
-  ): Promise<{ data: Game[], total: number }>;
-  
-  getAll(): Promise<Game[]>;
-
-  getTopRatedGames(
-    limit: number,
-    minReviews?: number,
-  ): Promise<TopGameDTO[]>;
-
-  // Update
-  patch(id: number, game: Partial<Game>): Promise<Game | undefined>;
-
-  // Delete
+    filters?: GameFilters,
+  ): Promise<{ data: StoredGame[]; total: number }>;
+  getAll(filters?: GameFilters): Promise<StoredGame[]>;
+  getTopRatedGames(limit: number, minReviews?: number): Promise<TopGameDTO[]>;
+  patch(id: number, changes: GameChanges): Promise<StoredGame | null>;
   delete(id: number): Promise<boolean>;
 }
-
-//Operaciones CRUD básicas para el repositorio de games.
