@@ -1,8 +1,8 @@
 import { describe, it, expect, jest, beforeEach } from '@jest/globals';
 import type { Request, Response } from 'express';
-import { GameController } from '../../game/game.controller.js';
-import type { GameRepository } from '../../game/game.repository.interface.js';
-import { Game } from '../../game/game.entity.js';
+import { GameController } from '../../src/game/game.controller.js';
+import type { GameRepository } from '../../src/game/game.repository.interface.js';
+import { Game } from '../../src/game/game.entity.js';
 
 function makeRepoMock(): jest.Mocked<GameRepository> {
   return {
@@ -11,9 +11,10 @@ function makeRepoMock(): jest.Mocked<GameRepository> {
     findByName: jest.fn(),
     getPaginated: jest.fn(),
     getAll: jest.fn(),
+    getTopRatedGames: jest.fn(),
     patch: jest.fn(),
     delete: jest.fn(),
-  } as unknown as jest.Mocked<GameRepository>;
+  };
 }
 
 function makeRes() {
@@ -146,9 +147,10 @@ describe('GameController', () => {
     });
 
     it('retorna paginado si all=false', async () => {
-      repo.getPaginated.mockResolvedValue([
-        { id: 3, name: 'Gris', description: 'Arte', genre: 'Indie' },
-      ]);
+      repo.getPaginated.mockResolvedValue({
+        data: [{ id: 3, name: 'Gris', description: 'Arte', genre: 'Indie' }],
+        total: 2,
+      });
 
       const req = {} as Request;
       const { res, json } = makeRes();
@@ -163,6 +165,7 @@ describe('GameController', () => {
       expect(json).toHaveBeenCalledWith({
         page: 2,
         limit: 1,
+        total: 2,
         data: [{ id: 3, name: 'Gris', description: 'Arte', genre: 'Indie' }],
       });
     });
