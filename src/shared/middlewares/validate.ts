@@ -1,27 +1,26 @@
-import { Request, Response, NextFunction } from 'express';
-import { z } from 'zod';
+import type { Request, Response, NextFunction } from 'express';
+import type { z } from 'zod';
 
 type Where = 'body' | 'params' | 'query';
 
-function validate(schema: z.ZodTypeAny, where: Where) {
+export type ValidatedLocals<T extends object> = { validated: T };
+
+function validate(schema: z.ZodType, where: Where) {
   return (req: Request, res: Response, next: NextFunction) => {
-    const parsed = schema.safeParse((req as any)[where]);
+    const parsed = schema.safeParse(req[where]);
     if (!parsed.success) {
-      const flat = z.flattenError(parsed.error);
-      return res.status(400).json({ message: 'Validation error', ...flat });
+      return next(parsed.error);
     }
 
-    res.locals.validated ??= {};
-    res.locals.validated[where] = parsed.data;
+    const validated: Partial<Record<Where, unknown>> = res.locals.validated ?? {};
+    res.locals.validated = { ...validated, [where]: parsed.data };
 
-    if (where === 'body') (req as any).body = parsed.data;
+    if (where === 'body') req.body = parsed.data;
 
     next();
   };
 }
 
-export const validateBody = (s: z.ZodTypeAny) => validate(s, 'body');
-export const validateParams = (s: z.ZodTypeAny) => validate(s, 'params');
-export const validateQuery = (s: z.ZodTypeAny) => validate(s, 'query');
-
-// Middleware que invoca en tiempo de request los schemas dentro de validators
+export const validateBody = (schema: z.ZodType) => validate(schema, 'body');
+export const validateParams = (schema: z.ZodType) => validate(schema, 'params');
+export const validateQuery = (schema: z.ZodType) => validate(schema, 'query');
