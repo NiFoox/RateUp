@@ -1,5 +1,8 @@
+# IDs: enteros entre 1 y 2147483647. Errores: message/code/field cuando corresponde.
+# El autor relacionado solo expone id/username; votes conserva reviewId.
+
 ### Crear reseña (requiere usuario logueado)
-# gameId debe existir en la base
+# gameId debe existir en la base; de lo contrario: 404 GAME_NOT_FOUND, field: gameId
 POST http://localhost:3000/api/reviews
 Content-Type: application/json
 Authorization: Bearer PASTE_JWT_TOKEN_HERE
@@ -31,10 +34,14 @@ GET http://localhost:3000/api/reviews/1/details
 Content-Type: application/json
 
 ### Obtener reseña completa para detalle (review + user + game + comments + votes)
+# Defaults al omitir: commentsPage=1, commentsPageSize=10; enteros >=1, tamaño máximo 100.
+# Inválidos/vacíos/repetidos (ej. commentsPage=1.7) -> 400 VALIDATION_ERROR.
+# Authorization es opcional: con JWT válido se personaliza userVote.
 GET http://localhost:3000/api/reviews/1/full?commentsPage=1&commentsPageSize=10
 Content-Type: application/json
 
-### Actualizar parcialmente una reseña (solo owner o ADMIN)
+### Actualizar parcialmente una reseña (solo owner o ADMIN vigente)
+# También permite gameId; juego inexistente -> 404 GAME_NOT_FOUND. Body vacío conserva updatedAt.
 PATCH http://localhost:3000/api/reviews/1
 Content-Type: application/json
 Authorization: Bearer PASTE_JWT_TOKEN_HERE

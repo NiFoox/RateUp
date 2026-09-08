@@ -7,7 +7,6 @@ export interface ReviewWithRelationsDto {
   user: {
     id: number;
     username: string;
-    email: string;
   };
   game: {
     id: number;

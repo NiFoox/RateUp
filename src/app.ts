@@ -29,9 +29,7 @@ app.use(helmet());
 
 app.use('/api/games', buildGameRouter(container.gameService, container.authMiddleware));
 app.use('/api/reviews',   buildReviewRouter(
-    container.reviewRepository,
-    container.reviewCommentRepository,
-    container.reviewVoteRepository,
+    container.reviewService,
     container.authMiddleware,
   ),
 );

@@ -1122,7 +1122,15 @@ Obtiene las reseñas más relevantes ("trending") en una ventana de tiempo recie
 
 # Reviews
 
+Las respuestas de Reviews con autor relacionado (`user`) contienen únicamente `id` y `username`; no exponen email. Esto incluye listados, `/me`, `/details` y `/full`. Se conserva `votes.reviewId`.
+
+Los errores usan el formato común `{ message, code, field? }`: `VALIDATION_ERROR` (400, con `formErrors`/`fieldErrors`), `UNAUTHENTICATED` (401), `FORBIDDEN` (403), `REVIEW_NOT_FOUND` (404) e `INTERNAL_ERROR` (500, sin detalles internos). Las rutas protegidas usan estado y roles vigentes; las rutas con autenticación opcional tratan una sesión inválida como anónima y propagan fallos de infraestructura como 500.
+
+Los IDs de reseña, juego y usuario, en params/body/filtros de Reviews, deben ser enteros de 1 a 2147483647; fuera de rango se devuelve 400.
+
 ---
+
+Los listados conservan `{ page, pageSize, total, data }`, orden ascendente por ID, page=1 y pageSize=10 por defecto, máximo 100. Sus parámetros vacíos o con espacios se tratan como omitidos; fracciones en page/pageSize devuelven 400. La búsqueda compara contenido, nombre de juego y username sin distinguir mayúsculas. `/me` valida el mismo query, pero siempre reemplaza cualquier userId suministrado por el usuario autenticado; no permite consultar reseñas ajenas. Query adicionales se ignoran.
 
 ### Campo `userVote` (voto del usuario actual)
 
@@ -1173,12 +1181,13 @@ Lista las reseñas creadas por el usuario autenticado, con paginación y opción
   - opcional  
   - número entero  
   - mínimo: 1  
+  - máximo: 100
   - valor por defecto: 10  
 
 - gameId  
   - opcional  
   - número entero  
-  - mayor que 0
+  - mayor que 0; máximo 2147483647
 
 - search  
   - opcional  
@@ -1213,8 +1222,7 @@ Lista las reseñas creadas por el usuario autenticado, con paginación y opción
       "updatedAt": null,
       "user": {
         "id": 1,
-        "username": "nuevo",
-        "email": "nuevo@example.com"
+        "username": "nuevo"
       },
       "game": {
         "id": 1,
@@ -1240,8 +1248,7 @@ Lista las reseñas creadas por el usuario autenticado, con paginación y opción
       "updatedAt": null,
       "user": {
         "id": 1,
-        "username": "nuevo",
-        "email": "nuevo@example.com"
+        "username": "nuevo"
       },
       "game": {
         "id": 2,
@@ -1278,7 +1285,7 @@ Donde:
 **Posibles errores:**
 
 - 401 — No autenticado  
-- 500 — Error interno del servidor
+- 500 `INTERNAL_ERROR` — Error interno del servidor
 
 ---
 
@@ -1306,7 +1313,7 @@ Requiere usuario autenticado.
 - gameId  
   - obligatorio  
   - número entero  
-  - mayor que 0  
+  - mayor que 0; máximo 2147483647
 
 - content  
   - obligatorio  
@@ -1344,9 +1351,12 @@ Requiere usuario autenticado.
 
 **Posibles errores:**
 
+- 404 `GAME_NOT_FOUND`, `field: "gameId"` — El juego indicado no existe (antes producía un error interno).
+- 404 `USER_NOT_FOUND`, `field: "userId"` — La cuenta referenciada desapareció antes de persistir la operación.
+
 - 400 — Datos inválidos  
 - 401 — No autenticado  
-- 500 — Error interno del servidor
+- 500 `INTERNAL_ERROR` — Error interno del servidor
 
 ---
 
@@ -1363,7 +1373,7 @@ Obtiene una reseña por su ID.
 - id  
   - obligatorio  
   - número entero  
-  - mayor que 0  
+  - mayor que 0; máximo 2147483647
 
 **Response 200:**
 
@@ -1381,7 +1391,7 @@ Obtiene una reseña por su ID.
 
 **Posibles errores:**
 
-- 404 — Reseña no encontrada
+- 404 `REVIEW_NOT_FOUND` — Reseña no encontrada
 
 ---
 
@@ -1422,12 +1432,12 @@ Si no se envía header `Authorization`, o el token es inválido, la request se t
 - gameId  
   - opcional  
   - número entero  
-  - mayor que 0  
+  - mayor que 0; máximo 2147483647
 
 - userId  
   - opcional  
   - número entero  
-  - mayor que 0  
+  - mayor que 0; máximo 2147483647
 
 - search  
   - opcional  
@@ -1458,8 +1468,7 @@ Si no se envía header `Authorization`, o el token es inválido, la request se t
       "updatedAt": null,
       "user": {
         "id": 1,
-        "username": "nuevo",
-        "email": "nuevo@example.com"
+        "username": "nuevo"
       },
       "game": {
         "id": 1,
@@ -1485,8 +1494,7 @@ Si no se envía header `Authorization`, o el token es inválido, la request se t
       "updatedAt": null,
       "user": {
         "id": 2,
-        "username": "juan",
-        "email": "juan@example.com"
+        "username": "juan"
       },
       "game": {
         "id": 2,
@@ -1522,7 +1530,7 @@ Donde:
 
 **Posibles errores:**
 
-- 500 — Error interno del servidor
+- 500 `INTERNAL_ERROR` — Error interno del servidor
 
 ---
 
@@ -1539,7 +1547,7 @@ Obtiene una reseña con información del usuario que la creó y del juego al que
 - id  
   - obligatorio  
   - número entero  
-  - mayor que 0  
+  - mayor que 0; máximo 2147483647
 
 **Response 200:**
 
@@ -1552,8 +1560,7 @@ Obtiene una reseña con información del usuario que la creó y del juego al que
   "updatedAt": null,
   "user": {
     "id": 1,
-    "username": "nuevo",
-    "email": "nuevo@example.com"
+    "username": "nuevo"
   },
   "game": {
     "id": 1,
@@ -1565,7 +1572,7 @@ Obtiene una reseña con información del usuario que la creó y del juego al que
 
 **Posibles errores:**
 
-- 404 — Reseña no encontrada
+- 404 `REVIEW_NOT_FOUND` — Reseña no encontrada
 
 ---
 
@@ -1595,7 +1602,7 @@ Si no se envía header `Authorization`, o el token es inválido, la request se t
 - id  
   - obligatorio  
   - número entero  
-  - mayor que 0  
+  - mayor que 0; máximo 2147483647
 
 **Query params (comentarios):**
 
@@ -1606,20 +1613,20 @@ Si no se envía header `Authorization`, o el token es inválido, la request se t
 
 - commentsPage  
   - opcional  
-  - se interpreta como número si viene en formato string  
+  - un único valor numérico entero (no arrays ni parámetros repetidos)
   - mínimo: 1  
   - valor por defecto: 1  
-  - si el valor no es numérico o es `< 1`, se normaliza a `1`  
+  - vacío, fraccionario, no numérico o `< 1` devuelve `400 VALIDATION_ERROR`
 
 - commentsPageSize  
   - opcional  
-  - se interpreta como número si viene en formato string  
+  - un único valor numérico entero (no arrays ni parámetros repetidos)
   - mínimo: 1  
   - máximo: 100  
   - valor por defecto: 10  
-  - si el valor no es numérico, es `< 1` o `> 100`, se normaliza a `10`  
+  - vacío, fraccionario, no numérico, `< 1` o `> 100` devuelve `400 VALIDATION_ERROR`
 
-> Nota: si los parámetros son inválidos, el backend **normaliza** los valores (no retorna 400 por eso).
+> Los defaults se aplican solo si el parámetro no se envía. Por ejemplo, `commentsPage=1.7`, `commentsPage=-1` o `commentsPageSize=abc` devuelven 400. Los query adicionales se ignoran.
 
 ---
 
@@ -1642,8 +1649,7 @@ _No requiere body._
     "updatedAt": null,
     "user": {
       "id": 1,
-      "username": "nuevo",
-      "email": "nuevo@example.com"
+      "username": "nuevo"
     },
     "game": {
       "id": 1,
@@ -1654,7 +1660,7 @@ _No requiere body._
   "comments": {
     "page": 1,
     "pageSize": 10,
-    "total": 3,
+    "total": 2,
     "data": [
       {
         "id": 1,
@@ -1707,9 +1713,9 @@ Donde:
 
 **Posibles errores:**
 
-- 400 — Invalid data (error de validación en params/query)  
-- 404 — Review not found  
-- 500 — Internal server error
+- 400 `VALIDATION_ERROR` — Params/query inválidos
+- 404 `REVIEW_NOT_FOUND` — Reseña no encontrada
+- 500 `INTERNAL_ERROR` — Internal server error
 
 ---
 
@@ -1734,7 +1740,7 @@ Solo puede ser ejecutado por:
 - id  
   - obligatorio  
   - número entero  
-  - mayor que 0  
+  - mayor que 0; máximo 2147483647
 
 **Body:**
 
@@ -1753,7 +1759,7 @@ Solo puede ser ejecutado por:
 - gameId  
   - opcional  
   - número entero  
-  - mayor que 0  
+  - mayor que 0; máximo 2147483647
 
 - content  
   - opcional  
@@ -1768,6 +1774,7 @@ Solo puede ser ejecutado por:
 
 ### Notas adicionales del body
 
+- Si se actualiza al menos un campo, cambia `updatedAt`; `createdAt` y el autor se conservan.
 - El body puede enviarse vacío; en ese caso:
   - no se actualiza ningún campo,
   - se devuelve la reseña tal como está actualmente en la base de datos.
@@ -1800,11 +1807,13 @@ Solo puede ser ejecutado por:
 
 **Posibles errores:**
 
+- 404 `GAME_NOT_FOUND`, `field: "gameId"` — El juego indicado no existe (antes producía un error interno).
+
 - 400 — Datos inválidos  
 - 401 — No autenticado  
-- 403 — No autorizado para modificar esta reseña  
-- 404 — Reseña no encontrada  
-- 500 — Error interno del servidor
+- 403 `FORBIDDEN` — No autorizado para modificar o eliminar esta reseña
+- 404 `REVIEW_NOT_FOUND` — Reseña no encontrada
+- 500 `INTERNAL_ERROR` — Error interno del servidor
 
 ---
 
@@ -1829,7 +1838,7 @@ Solo puede ser ejecutado por:
 - id  
   - obligatorio  
   - número entero  
-  - mayor que 0  
+  - mayor que 0; máximo 2147483647
 
 **Body:**
 
@@ -1852,9 +1861,9 @@ _No content._
 **Posibles errores:**
 
 - 401 — No autenticado  
-- 403 — No autorizado para eliminar esta reseña  
-- 404 — Reseña no encontrada  
-- 500 — Error interno del servidor
+- 403 `FORBIDDEN` — No autorizado para modificar o eliminar esta reseña
+- 404 `REVIEW_NOT_FOUND` — Reseña no encontrada
+- 500 `INTERNAL_ERROR` — Error interno del servidor
 
 ---
 

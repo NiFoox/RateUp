@@ -6,28 +6,16 @@ import {
 } from '../shared/middlewares/validate.js';
 import type { AuthMiddleware } from '../shared/middlewares/auth.js';
 import { ReviewController } from './review.controller.js';
-import {
-  ReviewCreateSchema,
-  ReviewUpdateSchema,
-  ReviewIdParamSchema,
-  ReviewListQuerySchema,
-} from './validators/review.validation.js';
-import type { ReviewRepository } from './review.repository.interface.js';
-import type { ReviewCommentRepository } from '../review-comment/review-comment.repository.interface.js';
-import type { ReviewVoteRepository } from '../review-vote/review-vote.repository.interface.js';
+import { ReviewCreateSchema } from './dto/create-review.dto.js';
+import { ReviewUpdateSchema } from './dto/update-review.dto.js';
+import { ReviewIdParamSchema } from './dto/review-id.dto.js';
+import { ReviewListQuerySchema } from './dto/list-reviews.dto.js';
+import { ReviewFullQuerySchema } from './dto/full-review.dto.js';
+import type { ReviewService } from './review.service.js';
 
-export default function buildReviewRouter(
-  reviewRepository: ReviewRepository,
-  reviewCommentRepository: ReviewCommentRepository,
-  reviewVoteRepository: ReviewVoteRepository,
-  auth: AuthMiddleware,
-) {
+export default function buildReviewRouter(service: ReviewService, auth: AuthMiddleware) {
   const router = Router();
-  const controller = new ReviewController(
-    reviewRepository,
-    reviewCommentRepository,
-    reviewVoteRepository,
-  );
+  const controller = new ReviewController(service);
 
   // Mis reseñas (usuario logueado) | antes de '/:id'
   router.get(
@@ -65,6 +53,7 @@ export default function buildReviewRouter(
     '/:id/full',
     auth.optionalAuth,
     validateParams(ReviewIdParamSchema),
+    validateQuery(ReviewFullQuerySchema),
     controller.getFull.bind(controller),
   );
 
