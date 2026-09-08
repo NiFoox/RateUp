@@ -1,4 +1,4 @@
-export interface ReviewWithRelationsDTO {
+export interface ReviewWithRelationsDto {
   id: number;
   content: string;
   score: number;

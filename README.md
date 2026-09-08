@@ -8,10 +8,6 @@ Autenticación: JWT (Bearer Token) en el header `Authorization`
 
 ---
 
-## Primera entrega de refactor del backend
-
-La [guía de estudio y verificación](docs/backend-cleanup-01.md) explica la separación del módulo de juegos, el manejo común de errores, las pruebas y los cambios de comportamiento.
-
 # Autenticación
 
 ## POST `/auth/login`

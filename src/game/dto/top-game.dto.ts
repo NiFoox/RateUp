@@ -1,4 +1,4 @@
-export interface TopGameDTO {
+export interface TopGameDto {
   id: number;
   name: string;
   genre: string;

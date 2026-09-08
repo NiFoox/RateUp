@@ -3,11 +3,11 @@ import type { AuthService } from './auth.service.js';
 import type { UserService } from '../user/user.service.js';
 import {
   AuthLoginSchema,
-  type AuthLoginDTO,
+  type AuthLoginDto,
 } from './validators/auth.validation.js';
 import {
   UserCreateSchema,
-  type UserCreateDTO,
+  type UserCreateDto,
 } from '../user/validators/user.validation.js';
 import type { AuthenticatedRequest } from '../shared/middlewares/auth.js';
 
@@ -20,8 +20,8 @@ export class AuthController {
   // POST /api/auth/login
   async login(req: Request, res: Response) {
     try {
-      const dto: AuthLoginDTO =
-        (res.locals?.validated?.body as AuthLoginDTO) ??
+      const dto: AuthLoginDto =
+        (res.locals?.validated?.body as AuthLoginDto) ??
         AuthLoginSchema.parse(req.body);
 
       const result = await this.authService.login(dto);
@@ -53,8 +53,8 @@ export class AuthController {
   // POST /api/auth/register  (registro público, siempre rol USER)
   async register(req: Request, res: Response) {
     try {
-      const dto: UserCreateDTO =
-        (res.locals?.validated?.body as UserCreateDTO) ??
+      const dto: UserCreateDto =
+        (res.locals?.validated?.body as UserCreateDto) ??
         UserCreateSchema.parse(req.body);
 
       const createdUser = await this.userService.create(dto);

@@ -51,7 +51,7 @@ export const ReviewListQuerySchema = z.object({
 
 // ---------- Types (DTOs) ----------
 
-export type ReviewCreateDTO = z.infer<typeof ReviewCreateSchema>;
-export type ReviewUpdateDTO = z.infer<typeof ReviewUpdateSchema>;
-export type ReviewIdParamDTO = z.infer<typeof ReviewIdParamSchema>;
-export type ReviewListQueryDTO = z.infer<typeof ReviewListQuerySchema>;
+export type ReviewCreateDto = z.infer<typeof ReviewCreateSchema>;
+export type ReviewUpdateDto = z.infer<typeof ReviewUpdateSchema>;
+export type ReviewIdParamDto = z.infer<typeof ReviewIdParamSchema>;
+export type ReviewListQueryDto = z.infer<typeof ReviewListQuerySchema>;

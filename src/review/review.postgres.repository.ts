@@ -1,8 +1,8 @@
 import { Pool } from 'pg';
 import { Review } from './review.entity.js';
 import type { ReviewRepository } from './review.repository.interface.js';
-import type { ReviewWithRelationsDTO } from './dto/review-with-relations.dto.js';
-import type { TrendingReviewDTO } from './dto/trending-review.dto.js';
+import type { ReviewWithRelationsDto } from './dto/review-with-relations.dto.js';
+import type { TrendingReviewDto } from './dto/trending-review.dto.js';
 
 const mapRowToReview = (row: any): Review =>
   new Review(
@@ -176,7 +176,7 @@ export class ReviewPostgresRepository implements ReviewRepository {
     return { data, total };
   }
 
-  async findByIdWithRelations(id: number): Promise<ReviewWithRelationsDTO | null> {
+  async findByIdWithRelations(id: number): Promise<ReviewWithRelationsDto | null> {
     const query = `
       SELECT
         r.id,
@@ -204,7 +204,7 @@ export class ReviewPostgresRepository implements ReviewRepository {
 
     const row = rows[0];
 
-    const dto: ReviewWithRelationsDTO = {
+    const dto: ReviewWithRelationsDto = {
       id: row.id,
       content: row.content,
       score: row.score,
@@ -228,7 +228,7 @@ export class ReviewPostgresRepository implements ReviewRepository {
   async getTrendingReviews(
     limit: number,
     daysWindow: number,
-  ): Promise<TrendingReviewDTO[]> {
+  ): Promise<TrendingReviewDto[]> {
     const query = `
       SELECT
         r.id,

@@ -1,6 +1,6 @@
 import { Review } from './review.entity.js';
-import { ReviewWithRelationsDTO } from './dto/review-with-relations.dto.js';
-import type { TrendingReviewDTO } from './dto/trending-review.dto.js';
+import { ReviewWithRelationsDto } from './dto/review-with-relations.dto.js';
+import type { TrendingReviewDto } from './dto/trending-review.dto.js';
 
 export interface ReviewRepository {
   create(review: Review): Promise<Review>;
@@ -25,12 +25,12 @@ export interface ReviewRepository {
     total: number;
   }>;
 
-  findByIdWithRelations(id: number): Promise<ReviewWithRelationsDTO | null>;
+  findByIdWithRelations(id: number): Promise<ReviewWithRelationsDto | null>;
 
   getTrendingReviews(
     limit: number,
     daysWindow: number,
-  ): Promise<TrendingReviewDTO[]>;
+  ): Promise<TrendingReviewDto[]>;
 
   update(id: number, data: Partial<Review>): Promise<Review | undefined>;
 

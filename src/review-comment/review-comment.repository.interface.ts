@@ -1,5 +1,5 @@
 import { ReviewComment } from './review-comment.entity.js';
-import type { ReviewCommentWithUserDTO } from './dto/review-comment-with-user.dto.js';
+import type { ReviewCommentWithUserDto } from './dto/review-comment-with-user.dto.js';
 
 export interface ReviewCommentRepository {
   create(comment: ReviewComment): Promise<ReviewComment>;
@@ -16,7 +16,7 @@ export interface ReviewCommentRepository {
     reviewId: number,
     offset: number,
     limit: number,
-  ): Promise<ReviewCommentWithUserDTO[]>;
+  ): Promise<ReviewCommentWithUserDto[]>;
 
   countByReview(reviewId: number): Promise<number>;
 

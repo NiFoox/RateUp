@@ -6,4 +6,4 @@ export const AuthLoginSchema = z.strictObject({
   rememberMe: z.boolean().optional().default(false),
 });
 
-export type AuthLoginDTO = z.output<typeof AuthLoginSchema>;
+export type AuthLoginDto = z.output<typeof AuthLoginSchema>;

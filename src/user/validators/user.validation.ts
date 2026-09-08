@@ -90,8 +90,8 @@ export const UserListQuerySchema = z.object({
 
 // ---------- Types (DTOs) ----------
 
-export type UserCreateDTO = z.infer<typeof UserCreateSchema>;
-export type UserUpdateDTO = z.infer<typeof UserUpdateSchema>;
-export type UserIdParamDTO = z.infer<typeof UserIdParamSchema>;
-export type UserListQueryDTO = z.infer<typeof UserListQuerySchema>;
-export type UserRolesUpdateDTO = z.infer<typeof UserRolesUpdateSchema>;
+export type UserCreateDto = z.infer<typeof UserCreateSchema>;
+export type UserUpdateDto = z.infer<typeof UserUpdateSchema>;
+export type UserIdParamDto = z.infer<typeof UserIdParamSchema>;
+export type UserListQueryDto = z.infer<typeof UserListQuerySchema>;
+export type UserRolesUpdateDto = z.infer<typeof UserRolesUpdateSchema>;

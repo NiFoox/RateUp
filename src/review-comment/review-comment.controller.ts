@@ -8,11 +8,11 @@ import {
   ReviewCommentCreateSchema,
   ReviewCommentUpdateSchema,
   ReviewCommentListQuerySchema,
-  type ReviewCommentBaseParamsDTO,
-  type ReviewCommentWithIdParamsDTO,
-  type ReviewCommentCreateDTO,
-  type ReviewCommentUpdateDTO,
-  type ReviewCommentListQueryDTO,
+  type ReviewCommentBaseParamsDto,
+  type ReviewCommentWithIdParamsDto,
+  type ReviewCommentCreateDto,
+  type ReviewCommentUpdateDto,
+  type ReviewCommentListQueryDto,
 } from './validators/review-comment.validation.js';
 
 export class ReviewCommentController {
@@ -21,12 +21,12 @@ export class ReviewCommentController {
   // POST /api/reviews/:reviewId/comments
   async create(req: Request, res: Response): Promise<void> {
     try {
-      const params: ReviewCommentBaseParamsDTO =
-        (res.locals?.validated?.params as ReviewCommentBaseParamsDTO) ??
+      const params: ReviewCommentBaseParamsDto =
+        (res.locals?.validated?.params as ReviewCommentBaseParamsDto) ??
         ReviewCommentBaseParamsSchema.parse(req.params);
 
-      const body: ReviewCommentCreateDTO =
-        (res.locals?.validated?.body as ReviewCommentCreateDTO) ??
+      const body: ReviewCommentCreateDto =
+        (res.locals?.validated?.body as ReviewCommentCreateDto) ??
         ReviewCommentCreateSchema.parse(req.body);
 
       const { reviewId } = params;
@@ -59,12 +59,12 @@ export class ReviewCommentController {
 
   // GET /api/reviews/:reviewId/comments
   async list(req: Request, res: Response): Promise<void> {
-    const params: ReviewCommentBaseParamsDTO =
-      (res.locals?.validated?.params as ReviewCommentBaseParamsDTO) ??
+    const params: ReviewCommentBaseParamsDto =
+      (res.locals?.validated?.params as ReviewCommentBaseParamsDto) ??
       ReviewCommentBaseParamsSchema.parse(req.params);
 
-    const query: ReviewCommentListQueryDTO =
-      (res.locals?.validated?.query as ReviewCommentListQueryDTO) ??
+    const query: ReviewCommentListQueryDto =
+      (res.locals?.validated?.query as ReviewCommentListQueryDto) ??
       ReviewCommentListQuerySchema.parse(req.query);
 
     const { reviewId } = params;
@@ -84,12 +84,12 @@ export class ReviewCommentController {
   // GET /api/reviews/:reviewId/comments/details
   async listWithUser(req: Request, res: Response): Promise<void> {
     try {
-      const params: ReviewCommentBaseParamsDTO =
-        (res.locals?.validated?.params as ReviewCommentBaseParamsDTO) ??
+      const params: ReviewCommentBaseParamsDto =
+        (res.locals?.validated?.params as ReviewCommentBaseParamsDto) ??
         ReviewCommentBaseParamsSchema.parse(req.params);
 
-      const query: ReviewCommentListQueryDTO =
-        (res.locals?.validated?.query as ReviewCommentListQueryDTO) ??
+      const query: ReviewCommentListQueryDto =
+        (res.locals?.validated?.query as ReviewCommentListQueryDto) ??
         ReviewCommentListQuerySchema.parse(req.query);
 
       const { reviewId } = params;
@@ -125,12 +125,12 @@ export class ReviewCommentController {
   // PATCH /api/reviews/:reviewId/comments/:commentId
   async patch(req: Request, res: Response): Promise<void> {
     try {
-      const params: ReviewCommentWithIdParamsDTO =
-        (res.locals?.validated?.params as ReviewCommentWithIdParamsDTO) ??
+      const params: ReviewCommentWithIdParamsDto =
+        (res.locals?.validated?.params as ReviewCommentWithIdParamsDto) ??
         ReviewCommentWithIdParamsSchema.parse(req.params);
 
-      const body: ReviewCommentUpdateDTO =
-        (res.locals?.validated?.body as ReviewCommentUpdateDTO) ??
+      const body: ReviewCommentUpdateDto =
+        (res.locals?.validated?.body as ReviewCommentUpdateDto) ??
         ReviewCommentUpdateSchema.parse(req.body);
 
       const { reviewId, commentId } = params;
@@ -181,8 +181,8 @@ export class ReviewCommentController {
 
   // DELETE /api/reviews/:reviewId/comments/:commentId
   async delete(req: Request, res: Response): Promise<void> {
-    const params: ReviewCommentWithIdParamsDTO =
-      (res.locals?.validated?.params as ReviewCommentWithIdParamsDTO) ??
+    const params: ReviewCommentWithIdParamsDto =
+      (res.locals?.validated?.params as ReviewCommentWithIdParamsDto) ??
       ReviewCommentWithIdParamsSchema.parse(req.params);
 
     const { reviewId, commentId } = params;

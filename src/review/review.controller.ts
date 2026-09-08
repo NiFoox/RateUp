@@ -9,10 +9,10 @@ import {
   ReviewUpdateSchema,
   ReviewIdParamSchema,
   ReviewListQuerySchema,
-  type ReviewCreateDTO,
-  type ReviewUpdateDTO,
-  type ReviewIdParamDTO,
-  type ReviewListQueryDTO,
+  type ReviewCreateDto,
+  type ReviewUpdateDto,
+  type ReviewIdParamDto,
+  type ReviewListQueryDto,
 } from './validators/review.validation.js';
 
 function buildVotesDto(
@@ -39,8 +39,8 @@ export class ReviewController {
   // POST /api/reviews
   async create(req: Request, res: Response): Promise<void> {
     try {
-      const body: ReviewCreateDTO =
-        (res.locals?.validated?.body as ReviewCreateDTO) ??
+      const body: ReviewCreateDto =
+        (res.locals?.validated?.body as ReviewCreateDto) ??
         ReviewCreateSchema.parse(req.body);
 
       const { gameId, content, score } = body;
@@ -72,8 +72,8 @@ export class ReviewController {
 
   // GET /reviews/:id
   async getById(req: Request, res: Response): Promise<void> {
-    const params: ReviewIdParamDTO =
-      (res.locals?.validated?.params as ReviewIdParamDTO) ??
+    const params: ReviewIdParamDto =
+      (res.locals?.validated?.params as ReviewIdParamDto) ??
       ReviewIdParamSchema.parse(req.params);
 
     const review = await this.repository.findById(params.id);
@@ -89,8 +89,8 @@ export class ReviewController {
   // GET /reviews
   async list(req: Request, res: Response): Promise<void> {
     try {
-      const query: ReviewListQueryDTO =
-        (res.locals?.validated?.query as ReviewListQueryDTO) ??
+      const query: ReviewListQueryDto =
+        (res.locals?.validated?.query as ReviewListQueryDto) ??
         ReviewListQuerySchema.parse(req.query);
 
       const page = query.page ?? 1;
@@ -173,8 +173,8 @@ export class ReviewController {
     }
 
     try {
-      const query: ReviewListQueryDTO =
-        (res.locals?.validated?.query as ReviewListQueryDTO) ??
+      const query: ReviewListQueryDto =
+        (res.locals?.validated?.query as ReviewListQueryDto) ??
         ReviewListQuerySchema.parse(req.query);
 
       const page = query.page ?? 1;
@@ -241,8 +241,8 @@ export class ReviewController {
 
   // GET /reviews/:id/details
   async getWithRelations(req: Request, res: Response): Promise<void> {
-    const params: ReviewIdParamDTO =
-      (res.locals?.validated?.params as ReviewIdParamDTO) ??
+    const params: ReviewIdParamDto =
+      (res.locals?.validated?.params as ReviewIdParamDto) ??
       ReviewIdParamSchema.parse(req.params);
 
     const review = await this.repository.findByIdWithRelations(params.id);
@@ -258,8 +258,8 @@ export class ReviewController {
   // GET /api/reviews/:id/full
   async getFull(req: Request, res: Response): Promise<void> {
     try {
-      const params: ReviewIdParamDTO =
-        (res.locals?.validated?.params as ReviewIdParamDTO) ??
+      const params: ReviewIdParamDto =
+        (res.locals?.validated?.params as ReviewIdParamDto) ??
         ReviewIdParamSchema.parse(req.params);
 
       const reviewId = params.id;
@@ -343,12 +343,12 @@ export class ReviewController {
   // PATCH /reviews/:id
   async patch(req: Request, res: Response): Promise<void> {
     try {
-      const params: ReviewIdParamDTO =
-        (res.locals?.validated?.params as ReviewIdParamDTO) ??
+      const params: ReviewIdParamDto =
+        (res.locals?.validated?.params as ReviewIdParamDto) ??
         ReviewIdParamSchema.parse(req.params);
 
-      const body: ReviewUpdateDTO =
-        (res.locals?.validated?.body as ReviewUpdateDTO) ??
+      const body: ReviewUpdateDto =
+        (res.locals?.validated?.body as ReviewUpdateDto) ??
         ReviewUpdateSchema.parse(req.body);
 
       const authReq = req as AuthenticatedRequest;
@@ -398,8 +398,8 @@ export class ReviewController {
 
   // DELETE /reviews/:id
   async delete(req: Request, res: Response): Promise<void> {
-    const params: ReviewIdParamDTO =
-      (res.locals?.validated?.params as ReviewIdParamDTO) ??
+    const params: ReviewIdParamDto =
+      (res.locals?.validated?.params as ReviewIdParamDto) ??
       ReviewIdParamSchema.parse(req.params);
 
     const authReq = req as AuthenticatedRequest;

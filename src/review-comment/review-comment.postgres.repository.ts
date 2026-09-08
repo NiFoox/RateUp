@@ -1,7 +1,7 @@
 import { Pool } from 'pg';
 import { ReviewComment } from './review-comment.entity.js';
 import type { ReviewCommentRepository } from './review-comment.repository.interface.js';
-import type { ReviewCommentWithUserDTO } from './dto/review-comment-with-user.dto.js';
+import type { ReviewCommentWithUserDto } from './dto/review-comment-with-user.dto.js';
 
 const mapRowToComment = (row: any): ReviewComment =>
   new ReviewComment(
@@ -54,7 +54,7 @@ export class ReviewCommentPostgresRepository implements ReviewCommentRepository 
     reviewId: number,
     offset: number,
     limit: number,
-  ): Promise<ReviewCommentWithUserDTO[]> {
+  ): Promise<ReviewCommentWithUserDto[]> {
     const query = `
       SELECT
         c.id,

@@ -4,8 +4,8 @@ import type { ReviewVoteRepository } from './review-vote.repository.interface.js
 import {
   ReviewVoteParamsSchema,
   ReviewVoteBodySchema,
-  type ReviewVoteParamsDTO,
-  type ReviewVoteBodyDTO,
+  type ReviewVoteParamsDto,
+  type ReviewVoteBodyDto,
 } from './validators/review-vote.validation.js';
 
 export class ReviewVoteController {
@@ -13,8 +13,8 @@ export class ReviewVoteController {
 
   // GET /api/reviews/:reviewId/votes
   async getSummary(req: Request, res: Response): Promise<void> {
-    const params: ReviewVoteParamsDTO =
-      (res.locals?.validated?.params as ReviewVoteParamsDTO) ??
+    const params: ReviewVoteParamsDto =
+      (res.locals?.validated?.params as ReviewVoteParamsDto) ??
       ReviewVoteParamsSchema.parse(req.params);
 
     const { reviewId } = params;
@@ -40,12 +40,12 @@ export class ReviewVoteController {
   // POST /api/reviews/:reviewId/votes
   async upsert(req: Request, res: Response): Promise<void> {
     try {
-      const params: ReviewVoteParamsDTO =
-        (res.locals?.validated?.params as ReviewVoteParamsDTO) ??
+      const params: ReviewVoteParamsDto =
+        (res.locals?.validated?.params as ReviewVoteParamsDto) ??
         ReviewVoteParamsSchema.parse(req.params);
 
-      const body: ReviewVoteBodyDTO =
-        (res.locals?.validated?.body as ReviewVoteBodyDTO) ??
+      const body: ReviewVoteBodyDto =
+        (res.locals?.validated?.body as ReviewVoteBodyDto) ??
         ReviewVoteBodySchema.parse(req.body);
 
       const { reviewId } = params;
@@ -93,8 +93,8 @@ export class ReviewVoteController {
   // DELETE /api/reviews/:reviewId/votes
   async remove(req: Request, res: Response): Promise<void> {
     try {
-      const params: ReviewVoteParamsDTO =
-        (res.locals?.validated?.params as ReviewVoteParamsDTO) ??
+      const params: ReviewVoteParamsDto =
+        (res.locals?.validated?.params as ReviewVoteParamsDto) ??
         ReviewVoteParamsSchema.parse(req.params);
 
       const { reviewId } = params;

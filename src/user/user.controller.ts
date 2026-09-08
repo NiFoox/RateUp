@@ -6,11 +6,11 @@ import {
   UserIdParamSchema,
   UserListQuerySchema,
   UserRolesUpdateSchema,
-  type UserCreateDTO,
-  type UserUpdateDTO,
-  type UserIdParamDTO,
-  type UserListQueryDTO,
-  type UserRolesUpdateDTO,
+  type UserCreateDto,
+  type UserUpdateDto,
+  type UserIdParamDto,
+  type UserListQueryDto,
+  type UserRolesUpdateDto,
 } from './validators/user.validation.js';
 import type { AuthenticatedRequest } from '../shared/middlewares/auth.js';
 
@@ -19,8 +19,8 @@ export class UserController {
 
   // POST /api/users (ADMIN crea usuarios)
   async create(req: Request, res: Response) {
-    const body: UserCreateDTO =
-      (res.locals?.validated?.body as UserCreateDTO) ??
+    const body: UserCreateDto =
+      (res.locals?.validated?.body as UserCreateDto) ??
       UserCreateSchema.parse(req.body);
 
     try {
@@ -38,8 +38,8 @@ export class UserController {
 
   // GET /api/users (ADMIN)
   async list(req: Request, res: Response) {
-    const query: UserListQueryDTO =
-      (res.locals?.validated?.query as UserListQueryDTO) ??
+    const query: UserListQueryDto =
+      (res.locals?.validated?.query as UserListQueryDto) ??
       UserListQuerySchema.parse(req.query);
 
     const result = await this.service.list(query);
@@ -48,8 +48,8 @@ export class UserController {
 
   // GET /api/users/:id (ADMIN)
   async getById(req: Request, res: Response) {
-    const params: UserIdParamDTO =
-      (res.locals?.validated?.params as UserIdParamDTO) ??
+    const params: UserIdParamDto =
+      (res.locals?.validated?.params as UserIdParamDto) ??
       UserIdParamSchema.parse(req.params);
 
     const user = await this.service.findById(params.id);
@@ -63,8 +63,8 @@ export class UserController {
 
   // GET /api/users/profile/:id -> perfil público
   async getProfileById(req: Request, res: Response) {
-    const params: UserIdParamDTO =
-      (res.locals?.validated?.params as UserIdParamDTO) ??
+    const params: UserIdParamDto =
+      (res.locals?.validated?.params as UserIdParamDto) ??
       UserIdParamSchema.parse(req.params);
 
     const profile = await this.service.getPublicProfile(params.id);
@@ -78,12 +78,12 @@ export class UserController {
 
   // PATCH /api/users/:id (dueño o ADMIN)
   async update(req: Request, res: Response) {
-    const params: UserIdParamDTO =
-      (res.locals?.validated?.params as UserIdParamDTO) ??
+    const params: UserIdParamDto =
+      (res.locals?.validated?.params as UserIdParamDto) ??
       UserIdParamSchema.parse(req.params);
 
-    const body: UserUpdateDTO =
-      (res.locals?.validated?.body as UserUpdateDTO) ??
+    const body: UserUpdateDto =
+      (res.locals?.validated?.body as UserUpdateDto) ??
       UserUpdateSchema.parse(req.body);
 
     const authReq = req as AuthenticatedRequest;
@@ -124,12 +124,12 @@ export class UserController {
 
   // PATCH /api/users/:id/roles (solo ADMIN)
   async updateRoles(req: Request, res: Response) {
-    const params: UserIdParamDTO =
-      (res.locals?.validated?.params as UserIdParamDTO) ??
+    const params: UserIdParamDto =
+      (res.locals?.validated?.params as UserIdParamDto) ??
       UserIdParamSchema.parse(req.params);
 
-    const body: UserRolesUpdateDTO =
-      (res.locals?.validated?.body as UserRolesUpdateDTO) ??
+    const body: UserRolesUpdateDto =
+      (res.locals?.validated?.body as UserRolesUpdateDto) ??
       UserRolesUpdateSchema.parse(req.body);
 
     const authReq = req as AuthenticatedRequest;
@@ -158,8 +158,8 @@ export class UserController {
 
   // DELETE /api/users/:id (ADMIN)
   async delete(req: Request, res: Response) {
-    const params: UserIdParamDTO =
-      (res.locals?.validated?.params as UserIdParamDTO) ??
+    const params: UserIdParamDto =
+      (res.locals?.validated?.params as UserIdParamDto) ??
       UserIdParamSchema.parse(req.params);
 
     const authReq = req as AuthenticatedRequest;

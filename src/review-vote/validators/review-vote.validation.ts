@@ -12,5 +12,5 @@ export const ReviewVoteBodySchema = z
   })
   .strict();
 
-export type ReviewVoteParamsDTO = z.infer<typeof ReviewVoteParamsSchema>;
-export type ReviewVoteBodyDTO = z.infer<typeof ReviewVoteBodySchema>;
+export type ReviewVoteParamsDto = z.infer<typeof ReviewVoteParamsSchema>;
+export type ReviewVoteBodyDto = z.infer<typeof ReviewVoteBodySchema>;

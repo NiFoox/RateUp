@@ -1,7 +1,7 @@
 import type { Pool } from 'pg';
 import type { Game, StoredGame } from './game.entity.js';
 import type { GameChanges, GameFilters, GameRepository } from './game.repository.interface.js';
-import type { TopGameDTO } from './dto/top-game.dto.js';
+import type { TopGameDto } from './dto/top-game.dto.js';
 import { mapPostgresErrorToDomainError } from '../shared/errors/db-errors.js';
 
 function buildFilters({ search, genre }: GameFilters = {}) {
@@ -79,7 +79,7 @@ export class GamePostgresRepository implements GameRepository {
     return rows;
   }
 
-  async getTopRatedGames(limit: number, minReviews: number = 1): Promise<TopGameDTO[]> {
+  async getTopRatedGames(limit: number, minReviews: number = 1): Promise<TopGameDto[]> {
     const { rows } = await this.db.query<{
       id: number;
       name: string;

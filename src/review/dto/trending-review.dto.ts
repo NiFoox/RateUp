@@ -1,4 +1,4 @@
-export interface TrendingReviewDTO {
+export interface TrendingReviewDto {
   id: number;
   content: string;
   score: number;

@@ -4,9 +4,9 @@ import type {
   UserProfileStats,
 } from './user.repository.interface.js';
 import type {
-  UserCreateDTO,
-  UserUpdateDTO,
-  UserListQueryDTO,
+  UserCreateDto,
+  UserUpdateDto,
+  UserListQueryDto,
 } from './validators/user.validation.js';
 import { hashPassword } from '../common/password.util.js';
 
@@ -80,7 +80,7 @@ export class UserService {
 
   // ---------- CRUD básico ----------
 
-  async create(dto: UserCreateDTO): Promise<UserDto> {
+  async create(dto: UserCreateDto): Promise<UserDto> {
     const existingByUsername = await this.repository.findByUsername(
       dto.username,
     );
@@ -107,7 +107,7 @@ export class UserService {
     return this.toDto(created);
   }
 
-  async list(query: UserListQueryDTO): Promise<{
+  async list(query: UserListQueryDto): Promise<{
     page: number;
     pageSize: number;
     total: number;
@@ -133,7 +133,7 @@ export class UserService {
     return user ? this.toDto(user) : null;
   }
 
-  async update(id: number, dto: UserUpdateDTO): Promise<UserDto | null> {
+  async update(id: number, dto: UserUpdateDto): Promise<UserDto | null> {
     const existing = await this.repository.findById(id);
     if (!existing) {
       return null;

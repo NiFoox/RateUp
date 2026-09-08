@@ -1,4 +1,4 @@
-export interface ReviewCommentWithUserDTO {
+export interface ReviewCommentWithUserDto {
   id: number;
   reviewId: number;
   content: string;

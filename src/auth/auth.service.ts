@@ -1,7 +1,7 @@
 import jwt, { type SignOptions, type Secret } from 'jsonwebtoken';
 import { verifyPassword } from '../common/password.util.js';
 import type { UserRepository } from '../user/user.repository.interface.js';
-import type { AuthLoginDTO } from './validators/auth.validation.js';
+import type { AuthLoginDto } from './validators/auth.validation.js';
 import type { AuthLoginResponse, AuthUser } from './auth.entity.js';
 import type { User } from '../user/user.entity.js';
 
@@ -47,7 +47,7 @@ export class AuthService {
     return { expiresAt, expiresIn };
   }
 
-  async login(dto: AuthLoginDTO): Promise<AuthLoginResponse> {
+  async login(dto: AuthLoginDto): Promise<AuthLoginResponse> {
     const { usernameOrEmail, password, rememberMe } = dto;
 
     if (!usernameOrEmail || !password) {
