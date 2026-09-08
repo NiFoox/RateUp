@@ -1,147 +1,47 @@
-import type { Request, Response, NextFunction } from 'express';
-import jwt, { type JwtPayload } from 'jsonwebtoken';
+import type { Request, Response, NextFunction, RequestHandler } from 'express';
+import type { AuthService } from '../../auth/auth.service.js';
+import type { AuthPrincipal } from '../../auth/dto/auth.dto.js';
 import type { UserRole } from '../../user/user.entity.js';
-
-export interface JwtUserPayload extends JwtPayload {
-  sub: string;
-  email: string;
-  roles: UserRole[];
-}
+import { DomainError } from '../errors/domain-error.js';
 
 export interface AuthenticatedRequest extends Request {
-  user?: JwtUserPayload;
+  user?: AuthPrincipal;
 }
 
-function getJwtSecret(): string {
-  const secret = process.env.JWT_SECRET;
-  if (!secret) {
-    throw new Error('JWT_SECRET is not defined');
-  }
-  return secret;
+export interface AuthMiddleware {
+  requireAuth: RequestHandler;
+  optionalAuth: RequestHandler;
 }
 
-export function requireAuth(
-  req: AuthenticatedRequest,
-  res: Response,
-  next: NextFunction,
-) {
-  const authHeader = req.headers.authorization;
+export function buildAuthMiddleware(service: AuthService): AuthMiddleware {
+  function authenticate(required: boolean): RequestHandler {
+    return async (req: AuthenticatedRequest, _res: Response, next: NextFunction) => {
+      const header = req.headers.authorization;
+      const token = header?.startsWith('Bearer ') ? header.substring('Bearer '.length) : undefined;
+      const user = token ? await service.authenticate(token) : null;
+      req.user = user ?? undefined;
 
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return res
-      .status(401)
-      .json({ error: 'Authorization header missing or malformed' });
-  }
+      if (required && !user) {
+        throw new DomainError('UNAUTHENTICATED', 'No autenticado o sesión inválida', 401);
+      }
 
-  const token = authHeader.substring('Bearer '.length);
-
-  try {
-    const decoded = jwt.verify(token, getJwtSecret());
-
-    if (!decoded || typeof decoded !== 'object') {
-      return res.status(401).json({ error: 'Token inválido' });
-    }
-
-    const payload = decoded as JwtPayload;
-
-    const email = (payload as any).email;
-    const roles = (payload as any).roles;
-
-    if (
-      typeof payload.sub !== 'string' ||
-      typeof email !== 'string' ||
-      !Array.isArray(roles)
-    ) {
-      return res.status(401).json({ error: 'Token inválido' });
-    }
-
-    const userPayload: JwtUserPayload = {
-      ...payload,
-      sub: payload.sub,
-      email,
-      roles,
+      next();
     };
-
-    req.user = userPayload;
-
-    return next();
-  } catch (error) {
-    if (error instanceof Error && error.message === 'JWT_SECRET is not defined') {
-      return res.status(500).json({ error: 'Config de JWT incompleta' });
-    }
-
-    return res.status(401).json({ error: 'Token inválido o expirado' });
-  }
-}
-
-// Si NO hay Authorization → sigue como público (req.user = undefined).
-// Si hay Authorization y el token es válido → setea req.user.
-// Si hay token inválido/roto → lo tratamos como “no autenticado” y seguimos.
-export function optionalAuth(
-  req: AuthenticatedRequest,
-  res: Response,
-  next: NextFunction,
-) {
-  const authHeader = req.headers.authorization;
-
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return next();
   }
 
-  const token = authHeader.substring('Bearer '.length);
-
-  try {
-    const decoded = jwt.verify(token, getJwtSecret());
-
-    if (!decoded || typeof decoded !== 'object') {
-      return next();
-    }
-
-    const payload = decoded as JwtPayload;
-
-    const email = (payload as any).email;
-    const roles = (payload as any).roles;
-
-    if (
-      typeof payload.sub !== 'string' ||
-      typeof email !== 'string' ||
-      !Array.isArray(roles)
-    ) {
-      return next();
-    }
-
-    const userPayload: JwtUserPayload = {
-      ...payload,
-      sub: payload.sub,
-      email,
-      roles,
-    };
-
-    req.user = userPayload;
-
-    return next();
-  } catch (error) {
-    if (error instanceof Error && error.message === 'JWT_SECRET is not defined') {
-      return res.status(500).json({ error: 'Config de JWT incompleta' });
-    }
-
-    return next();
-  }
+  // En endpoints públicos, una sesión inválida se trata como anónima.
+  // Los errores de infraestructura se propagan al middleware común, no se ocultan.
+  return { requireAuth: authenticate(true), optionalAuth: authenticate(false) };
 }
 
 export function requireRole(...roles: UserRole[]) {
-  return (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
-    const user = req.user;
-
-    if (!user) {
-      return res.status(401).json({ error: 'No autenticado' });
+  return (req: AuthenticatedRequest, _res: Response, next: NextFunction) => {
+    if (!req.user) {
+      throw new DomainError('UNAUTHENTICATED', 'No autenticado', 401);
     }
-
-    const hasRole = user.roles?.some((role) => roles.includes(role));
-    if (!hasRole) {
-      return res.status(403).json({ error: 'No autorizado' });
+    if (!req.user.roles.some((role) => roles.includes(role))) {
+      throw new DomainError('FORBIDDEN', 'No autorizado', 403);
     }
-
-    return next();
+    next();
   };
 }

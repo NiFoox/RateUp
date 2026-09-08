@@ -4,7 +4,7 @@ import {
   validateParams,
   validateQuery,
 } from '../shared/middlewares/validate.js';
-import { requireAuth, optionalAuth } from '../shared/middlewares/auth.js';
+import type { AuthMiddleware } from '../shared/middlewares/auth.js';
 import { ReviewController } from './review.controller.js';
 import {
   ReviewCreateSchema,
@@ -20,6 +20,7 @@ export default function buildReviewRouter(
   reviewRepository: ReviewRepository,
   reviewCommentRepository: ReviewCommentRepository,
   reviewVoteRepository: ReviewVoteRepository,
+  auth: AuthMiddleware,
 ) {
   const router = Router();
   const controller = new ReviewController(
@@ -31,7 +32,7 @@ export default function buildReviewRouter(
   // Mis reseñas (usuario logueado) | antes de '/:id'
   router.get(
     '/me',
-    requireAuth,
+    auth.requireAuth,
     validateQuery(ReviewListQuerySchema),
     controller.listMine.bind(controller),
   );
@@ -39,7 +40,7 @@ export default function buildReviewRouter(
   // Crear reseña (requiere login)
   router.post(
     '/',
-    requireAuth,
+    auth.requireAuth,
     validateBody(ReviewCreateSchema),
     controller.create.bind(controller),
   );
@@ -47,7 +48,7 @@ export default function buildReviewRouter(
   // Listar reseñas públicas
   router.get(
     '/',
-    optionalAuth,
+    auth.optionalAuth,
     validateQuery(ReviewListQuerySchema),
     controller.list.bind(controller),
   );
@@ -62,7 +63,7 @@ export default function buildReviewRouter(
   // Obtener reseña completa (full + comments + votes + userVote)
   router.get(
     '/:id/full',
-    optionalAuth,
+    auth.optionalAuth,
     validateParams(ReviewIdParamSchema),
     controller.getFull.bind(controller),
   );
@@ -77,7 +78,7 @@ export default function buildReviewRouter(
   // Actualizar reseña (dueño o ADMIN)
   router.patch(
     '/:id',
-    requireAuth,
+    auth.requireAuth,
     validateParams(ReviewIdParamSchema),
     validateBody(ReviewUpdateSchema),
     controller.patch.bind(controller),
@@ -86,7 +87,7 @@ export default function buildReviewRouter(
   // Eliminar reseña (dueño o ADMIN)
   router.delete(
     '/:id',
-    requireAuth,
+    auth.requireAuth,
     validateParams(ReviewIdParamSchema),
     controller.delete.bind(controller),
   );

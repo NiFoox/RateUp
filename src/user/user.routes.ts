@@ -13,12 +13,9 @@ import {
 } from './validators/user.validation.js';
 import { UserController } from './user.controller.js';
 import type { UserService } from './user.service.js';
-import {
-  requireAuth,
-  requireRole,
-} from '../shared/middlewares/auth.js';
+import { requireRole, type AuthMiddleware } from '../shared/middlewares/auth.js';
 
-export default function buildUserRouter(userService: UserService) {
+export default function buildUserRouter(userService: UserService, auth: AuthMiddleware) {
   const router = Router();
   const controller = new UserController(userService);
 
@@ -32,7 +29,7 @@ export default function buildUserRouter(userService: UserService) {
   // Crear usuario (ADMIN)
   router.post(
     '/',
-    requireAuth,
+    auth.requireAuth,
     requireRole('ADMIN'),
     validateBody(UserCreateSchema),
     controller.create.bind(controller),
@@ -41,7 +38,7 @@ export default function buildUserRouter(userService: UserService) {
   // Listar usuarios (ADMIN)
   router.get(
     '/',
-    requireAuth,
+    auth.requireAuth,
     requireRole('ADMIN'),
     validateQuery(UserListQuerySchema),
     controller.list.bind(controller),
@@ -50,7 +47,7 @@ export default function buildUserRouter(userService: UserService) {
   // Ver usuario (ADMIN)
   router.get(
     '/:id',
-    requireAuth,
+    auth.requireAuth,
     requireRole('ADMIN'),
     validateParams(UserIdParamSchema),
     controller.getById.bind(controller),
@@ -59,7 +56,7 @@ export default function buildUserRouter(userService: UserService) {
   // Actualizar roles de usuario (solo ADMIN)
   router.patch(
     '/:id/roles',
-    requireAuth,
+    auth.requireAuth,
     requireRole('ADMIN'),
     validateParams(UserIdParamSchema),
     validateBody(UserRolesUpdateSchema),
@@ -69,7 +66,7 @@ export default function buildUserRouter(userService: UserService) {
   // Actualizar usuario (dueño o ADMIN)
   router.patch(
     '/:id',
-    requireAuth,
+    auth.requireAuth,
     validateParams(UserIdParamSchema),
     validateBody(UserUpdateSchema),
     controller.update.bind(controller),
@@ -78,7 +75,7 @@ export default function buildUserRouter(userService: UserService) {
   // Eliminar usuario (ADMIN)
   router.delete(
     '/:id',
-    requireAuth,
+    auth.requireAuth,
     requireRole('ADMIN'),
     validateParams(UserIdParamSchema),
     controller.delete.bind(controller),

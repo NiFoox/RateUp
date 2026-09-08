@@ -7,6 +7,7 @@ import { ReviewPostgresRepository } from '../review/review.postgres.repository.j
 import { ReviewCommentPostgresRepository } from '../review-comment/review-comment.postgres.repository.js';
 import { ReviewVotePostgresRepository } from '../review-vote/review-vote.postgres.repository.js';
 import { AuthService } from '../auth/auth.service.js';
+import { buildAuthMiddleware } from './middlewares/auth.js';
 
 const pool = createPgPool();
 
@@ -14,7 +15,8 @@ const gameRepository = new GamePostgresRepository(pool);
 const gameService = new GameService(gameRepository);
 const userRepository = new UserPostgresRepository(pool);
 const userService = new UserService(userRepository);
-const authService = new AuthService(userRepository);
+const authService = new AuthService(userRepository, userService);
+const authMiddleware = buildAuthMiddleware(authService);
 const reviewRepository = new ReviewPostgresRepository(pool);
 const reviewCommentRepository = new ReviewCommentPostgresRepository(pool);
 const reviewVoteRepository = new ReviewVotePostgresRepository(pool);
@@ -25,6 +27,7 @@ export const container = {
   userRepository,
   userService,
   authService,
+  authMiddleware,
   reviewRepository,
   reviewCommentRepository,
   reviewVoteRepository,

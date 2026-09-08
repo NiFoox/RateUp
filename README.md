@@ -10,6 +10,12 @@ Autenticación: JWT (Bearer Token) en el header `Authorization`
 
 # Autenticación
 
+El JWT conserva su duración (4 horas, o 30 días con `rememberMe`). En cada petición que usa autenticación se verifica el token y se consulta al usuario por `sub`: debe existir y estar activo; sus roles actuales en PostgreSQL determinan los permisos. Los roles y el email antiguos del token no se usan para autorizar.
+
+Las rutas con autenticación opcional conservan el acceso público: un token inválido, expirado o de una cuenta inactiva se trata como anónimo. Los fallos de infraestructura producen `500`, no una sesión anónima.
+
+Los errores de Auth y del middleware de sesión usan el formato común `{ message, code, field? }`; ya no devuelven el antiguo campo `error`. Se conservan los estados consumidos por Angular: `401` para credenciales/sesión inválidas y `403` para falta de permisos. Los códigos son `INVALID_CREDENTIALS`, `UNAUTHENTICATED`, `FORBIDDEN` y `USER_ALREADY_EXISTS` (registro duplicado, `409`). La validación de entrada conserva `VALIDATION_ERROR`, `formErrors` y `fieldErrors`.
+
 ## POST `/auth/login`
 
 Autentica un usuario.
@@ -59,7 +65,7 @@ Autentica un usuario.
 
 ## POST `/auth/register`
 
-Registra un nuevo usuario.
+Registra un usuario activo con rol `USER`. La creación administrativa sigue disponible por separado en `POST /users` para administradores.
 
 **Body:**
 
@@ -67,9 +73,7 @@ Registra un nuevo usuario.
 {
   "username": "nuevo",
   "email": "nuevo@example.com",
-  "password": "12345678",
-  "roles": ["USER"],
-  "isActive": true
+  "password": "12345678"
 }
 ```
 
@@ -88,15 +92,8 @@ Registra un nuevo usuario.
   - string no vacío
   - mínimo 8 caracteres
 
-- roles
-  - obligatorio
-  - array con al menos un rol
-  - cada elemento debe ser un rol válido (por ejemplo: "USER", "ADMIN")
-
-- isActive
-  - opcional
-  - boolean
-  - valor por defecto: true
+- `roles`, `isActive` y cualquier otro campo adicional se rechazan con `400`.
+- El servidor siempre asigna `roles: ["USER"]` e `isActive: true`.
 
 **Response 201:**
 
@@ -126,7 +123,7 @@ Obtiene el perfil privado del usuario autenticado.
 
 - Debe existir un token JWT válido en el header Authorization.
 - El token debe contener un `sub` numérico válido.
-- El usuario correspondiente al `sub` debe existir en la base de datos.
+- El usuario correspondiente al `sub` debe existir y estar activo en la base de datos.
 
 **Response 200:**
 
@@ -153,9 +150,9 @@ Obtiene el perfil privado del usuario autenticado.
 
 **Posibles errores:**
 
-- 401 — No autenticado  
-- 400 — Token inválido (sub inválido)  
-- 404 — Usuario no encontrado
+- 401 — Token ausente, inválido o expirado; `sub` inválido; usuario eliminado o inactivo.
+- 404 — Usuario eliminado entre la autenticación y la consulta del perfil.
+- 500 — Error interno o de infraestructura.
 
 
 ---

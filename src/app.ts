@@ -27,30 +27,31 @@ app.use(
 app.use(express.json({ limit: '100kb' }));
 app.use(helmet());
 
-app.use('/api/games', buildGameRouter(container.gameService));
+app.use('/api/games', buildGameRouter(container.gameService, container.authMiddleware));
 app.use('/api/reviews',   buildReviewRouter(
     container.reviewRepository,
     container.reviewCommentRepository,
     container.reviewVoteRepository,
+    container.authMiddleware,
   ),
 );
 
 // comentarios de review
 app.use(
   '/api/reviews/:reviewId/comments',
-  buildReviewCommentRouter(container.reviewCommentRepository),
+  buildReviewCommentRouter(container.reviewCommentRepository, container.authMiddleware),
 );
 
 // votos de review
 app.use(
   '/api/reviews/:reviewId/votes',
-  buildReviewVoteRouter(container.reviewVoteRepository),
+  buildReviewVoteRouter(container.reviewVoteRepository, container.authMiddleware),
 );
 
-app.use('/api/users', buildUserRouter(container.userService));
+app.use('/api/users', buildUserRouter(container.userService, container.authMiddleware));
 app.use('/api/auth', buildAuthRouter(
   container.authService,
-  container.userService,
+  container.authMiddleware,
 ));
 
 app.use(
@@ -74,8 +75,6 @@ export default app;
 // - Probar llamar api externa?
 // - Agregar total en comments/details para que soporte paginación
 // - Refactorizar PATCH de Users
-// - Refactorizar el register para no darse ADMIN.
-// - Refactorizar auth middleware para que no falle con token inválido
 // - Refactorizar controllers para no repetir tanto el parseo/validación de dto
 // - Refactorizar los servicios para que lancen errores específicos y no genéricos
 // - Refactorizar los repos para que lancen errores específicos y no genéricos

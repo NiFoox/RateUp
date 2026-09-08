@@ -3,7 +3,7 @@ import {
   validateBody,
   validateParams,
 } from '../shared/middlewares/validate.js';
-import { requireAuth, optionalAuth } from '../shared/middlewares/auth.js';
+import type { AuthMiddleware } from '../shared/middlewares/auth.js';
 import { ReviewVoteController } from './review-vote.controller.js';
 import {
   ReviewVoteParamsSchema,
@@ -13,6 +13,7 @@ import type { ReviewVoteRepository } from './review-vote.repository.interface.js
 
 export default function buildReviewVoteRouter(
   repository: ReviewVoteRepository,
+  auth: AuthMiddleware,
 ) {
   const router = Router({ mergeParams: true });
   const controller = new ReviewVoteController(repository);
@@ -21,7 +22,7 @@ export default function buildReviewVoteRouter(
   // GET /api/reviews/:reviewId/votes
   router.get(
     '/',
-    optionalAuth,
+    auth.optionalAuth,
     validateParams(ReviewVoteParamsSchema),
     controller.getSummary.bind(controller),
   );
@@ -30,7 +31,7 @@ export default function buildReviewVoteRouter(
   // POST /api/reviews/:reviewId/votes
   router.post(
     '/',
-    requireAuth,
+    auth.requireAuth,
     validateParams(ReviewVoteParamsSchema),
     validateBody(ReviewVoteBodySchema),
     controller.upsert.bind(controller),
@@ -40,7 +41,7 @@ export default function buildReviewVoteRouter(
   // DELETE /api/reviews/:reviewId/votes
   router.delete(
     '/',
-    requireAuth,
+    auth.requireAuth,
     validateParams(ReviewVoteParamsSchema),
     controller.remove.bind(controller),
   );

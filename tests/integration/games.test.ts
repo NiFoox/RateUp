@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from '@jest/globals';
+import { afterAll, beforeAll, beforeEach, describe, expect, it, jest } from '@jest/globals';
 import express from 'express';
 import jwt from 'jsonwebtoken';
 import buildGameRouter from '../../src/game/game.routes.js';
@@ -7,6 +7,11 @@ import { DomainError } from '../../src/shared/errors/domain-error.js';
 import { httpErrorMiddleware } from '../../src/shared/errors/http-error.middleware.js';
 import { makeGameRepository } from '../helpers/game-repository.js';
 import { startHttpServer } from '../helpers/http-server.js';
+import { AuthService } from '../../src/auth/auth.service.js';
+import { UserService } from '../../src/user/user.service.js';
+import { User } from '../../src/user/user.entity.js';
+import type { UserRepository } from '../../src/user/user.repository.interface.js';
+import { buildAuthMiddleware } from '../../src/shared/middlewares/auth.js';
 
 describe('Games HTTP contract', () => {
   const repository = makeGameRepository();
@@ -22,9 +27,26 @@ describe('Games HTTP contract', () => {
     process.env.JWT_SECRET = secret;
     adminToken = jwt.sign({ sub: '1', email: 'admin@example.test', roles: ['ADMIN'] }, secret);
     userToken = jwt.sign({ sub: '2', email: 'user@example.test', roles: ['USER'] }, secret);
+    const users: jest.Mocked<UserRepository> = {
+      create: jest.fn(),
+      findById: jest.fn(),
+      findByUsername: jest.fn(),
+      findByEmail: jest.fn(),
+      search: jest.fn(),
+      update: jest.fn(),
+      delete: jest.fn(),
+      getProfileStats: jest.fn(),
+    };
+    users.findById.mockImplementation(async (id) =>
+      Object.assign(
+        new User('fixture', 'fixture@example.test', 'unused', id === 1 ? ['ADMIN'] : ['USER']),
+        { id },
+      ),
+    );
+    const auth = buildAuthMiddleware(new AuthService(users, new UserService(users)));
     const app = express();
     app.use(express.json());
-    app.use('/api/games', buildGameRouter(new GameService(repository)));
+    app.use('/api/games', buildGameRouter(new GameService(repository), auth));
     app.use(httpErrorMiddleware);
     server = await startHttpServer(app);
   });

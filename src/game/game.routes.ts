@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { validateBody, validateParams, validateQuery } from '../shared/middlewares/validate.js';
-import { requireAuth, requireRole } from '../shared/middlewares/auth.js';
+import { requireRole, type AuthMiddleware } from '../shared/middlewares/auth.js';
 import { GameCreateSchema } from './dto/create-game.dto.js';
 import { GameUpdateSchema } from './dto/update-game.dto.js';
 import { GameIdParamSchema } from './dto/game-id.dto.js';
@@ -8,14 +8,14 @@ import { GameListQuerySchema } from './dto/list-games.dto.js';
 import { GameController } from './game.controller.js';
 import type { GameService } from './game.service.js';
 
-export default function buildGameRouter(service: GameService) {
+export default function buildGameRouter(service: GameService, auth: AuthMiddleware) {
   const gameRouter = Router();
   const controller = new GameController(service);
 
   // Create (solo ADMIN)
   gameRouter.post(
     '/',
-    requireAuth,
+    auth.requireAuth,
     requireRole('ADMIN'),
     validateBody(GameCreateSchema),
     controller.create.bind(controller),
@@ -30,7 +30,7 @@ export default function buildGameRouter(service: GameService) {
   // Update (PATCH) - solo ADMIN
   gameRouter.patch(
     '/:id',
-    requireAuth,
+    auth.requireAuth,
     requireRole('ADMIN'),
     validateParams(GameIdParamSchema),
     validateBody(GameUpdateSchema),
@@ -40,7 +40,7 @@ export default function buildGameRouter(service: GameService) {
   // Delete - solo ADMIN
   gameRouter.delete(
     '/:id',
-    requireAuth,
+    auth.requireAuth,
     requireRole('ADMIN'),
     validateParams(GameIdParamSchema),
     controller.delete.bind(controller),

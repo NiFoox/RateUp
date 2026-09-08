@@ -4,7 +4,7 @@ import {
   validateParams,
   validateQuery,
 } from '../shared/middlewares/validate.js';
-import { requireAuth } from '../shared/middlewares/auth.js';
+import type { AuthMiddleware } from '../shared/middlewares/auth.js';
 import { ReviewCommentController } from './review-comment.controller.js';
 import {
   ReviewCommentBaseParamsSchema,
@@ -17,6 +17,7 @@ import type { ReviewCommentRepository } from './review-comment.repository.interf
 
 export default function buildReviewCommentRouter(
   repository: ReviewCommentRepository,
+  auth: AuthMiddleware,
 ) {
   // mergeParams opcional.
   const router = Router({ mergeParams: true });
@@ -25,7 +26,7 @@ export default function buildReviewCommentRouter(
   // POST /api/reviews/:reviewId/comments (requiere login)
   router.post(
     '/',
-    requireAuth,
+    auth.requireAuth,
     validateParams(ReviewCommentBaseParamsSchema),
     validateBody(ReviewCommentCreateSchema),
     controller.create.bind(controller),
@@ -50,7 +51,7 @@ export default function buildReviewCommentRouter(
   // PATCH /api/reviews/:reviewId/comments/:commentId (requiere login)
   router.patch(
     '/:commentId',
-    requireAuth,
+    auth.requireAuth,
     validateParams(ReviewCommentWithIdParamsSchema),
     validateBody(ReviewCommentUpdateSchema),
     controller.patch.bind(controller),
@@ -59,7 +60,7 @@ export default function buildReviewCommentRouter(
   // DELETE /api/reviews/:reviewId/comments/:commentId (requiere login)
   router.delete(
     '/:commentId',
-    requireAuth,
+    auth.requireAuth,
     validateParams(ReviewCommentWithIdParamsSchema),
     controller.delete.bind(controller),
   );
