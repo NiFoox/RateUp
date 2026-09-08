@@ -4,7 +4,8 @@ import type { UserRepository } from '../user/user.repository.interface.js';
 import type { AuthLoginDto } from './dto/login.dto.js';
 import type { AuthRegisterDto } from './dto/register.dto.js';
 import type { AuthLoginResponseDto, AuthUserDto, AuthPrincipal } from './dto/auth.dto.js';
-import type { UserService, UserDto, PrivateUserProfileDto } from '../user/user.service.js';
+import type { UserService } from '../user/user.service.js';
+import type { UserDto, PrivateUserProfileDto } from '../user/dto/user.dto.js';
 import { DomainError } from '../shared/errors/domain-error.js';
 import type { User } from '../user/user.entity.js';
 
@@ -114,8 +115,11 @@ export class AuthService {
         isActive: true,
       });
     } catch (error) {
-      // Adaptación del servicio existente; la creación administrativa conserva su contrato.
-      if (error instanceof Error && error.message === 'USER_ALREADY_EXISTS') {
+      // Conserva el código público de registro ante conflictos de unicidad.
+      if (
+        error instanceof DomainError &&
+        (error.code === 'USERNAME_TAKEN' || error.code === 'EMAIL_TAKEN')
+      ) {
         throw new DomainError(
           'USER_ALREADY_EXISTS',
           'El nombre de usuario o email ya están registrados',
@@ -161,10 +165,6 @@ export class AuthService {
   }
 
   async getProfile(userId: number): Promise<PrivateUserProfileDto> {
-    const profile = await this.userService.getPrivateProfile(userId);
-    if (!profile) {
-      throw new DomainError('USER_NOT_FOUND', 'Usuario no encontrado', 404);
-    }
-    return profile;
+    return this.userService.getPrivateProfile(userId);
   }
 }

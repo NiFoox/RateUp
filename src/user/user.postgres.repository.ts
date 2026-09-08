@@ -1,19 +1,36 @@
-import { Pool } from 'pg';
+import type { Pool } from 'pg';
 import { User, type UserRole } from './user.entity.js';
 import { mapPostgresErrorToDomainError } from '../shared/errors/db-errors.js';
 import type {
   UserRepository,
   UserProfileStats,
+  UserUpdateData,
 } from './user.repository.interface.js';
 
-function mapRowToUser(row: any): User {
-  const roles: UserRole[] = Array.isArray(row.roles) ? row.roles : ['USER'];
+interface UserRow {
+  id: number;
+  username: string;
+  email: string;
+  password_hash: string;
+  roles: UserRole[];
+  is_active: boolean;
+  created_at: Date;
+  avatar_url: string | null;
+  bio: string | null;
+}
 
+interface UserProfileStatsRow {
+  reviews_count: number;
+  upvotes: number;
+  downvotes: number;
+}
+
+function mapRowToUser(row: UserRow): User {
   return new User(
     row.username,
     row.email,
     row.password_hash,
-    roles,
+    row.roles,
     row.is_active,
     row.created_at,
     row.avatar_url ?? null,
@@ -41,17 +58,21 @@ export class UserPostgresRepository implements UserRepository {
       user.bio,
     ];
 
-    const { rows } = await this.db.query(query, values);
-    return mapRowToUser(rows[0]);
+    try {
+      const { rows } = await this.db.query<UserRow>(query, values);
+      return mapRowToUser(rows[0]);
+    } catch (error) {
+      throw mapPostgresErrorToDomainError(error) ?? error;
+    }
   }
 
   async findById(id: number): Promise<User | null> {
-    const { rows } = await this.db.query('SELECT * FROM users WHERE id = $1', [id]);
+    const { rows } = await this.db.query<UserRow>('SELECT * FROM users WHERE id = $1', [id]);
     return rows[0] ? mapRowToUser(rows[0]) : null;
   }
 
   async findByUsername(username: string): Promise<User | null> {
-    const { rows } = await this.db.query(
+    const { rows } = await this.db.query<UserRow>(
       'SELECT * FROM users WHERE username = $1',
       [username],
     );
@@ -59,7 +80,7 @@ export class UserPostgresRepository implements UserRepository {
   }
 
   async findByEmail(email: string): Promise<User | null> {
-    const { rows } = await this.db.query(
+    const { rows } = await this.db.query<UserRow>(
       'SELECT * FROM users WHERE email = $1',
       [email],
     );
@@ -72,7 +93,7 @@ export class UserPostgresRepository implements UserRepository {
     searchTerm?: string,
   ): Promise<{ data: User[]; total: number }> {
     const offset = (page - 1) * pageSize;
-    const params: any[] = [];
+    const params: string[] = [];
     let whereClause = '';
 
     if (searchTerm) {
@@ -82,7 +103,7 @@ export class UserPostgresRepository implements UserRepository {
     }
 
     const totalQuery = `SELECT COUNT(*)::int AS count FROM users ${whereClause}`;
-    const totalResult = await this.db.query(totalQuery, params);
+    const totalResult = await this.db.query<{ count: number }>(totalQuery, params);
     const total = Number(totalResult.rows[0]?.count ?? 0);
 
     const dataQuery = `
@@ -95,7 +116,7 @@ export class UserPostgresRepository implements UserRepository {
     `;
 
     const dataParams = [...params, pageSize, offset];
-    const { rows } = await this.db.query(dataQuery, dataParams);
+    const { rows } = await this.db.query<UserRow>(dataQuery, dataParams);
 
     return {
       data: rows.map(mapRowToUser),
@@ -103,9 +124,9 @@ export class UserPostgresRepository implements UserRepository {
     };
   }
 
-  async update(id: number, data: Partial<User>): Promise<User | undefined> {
+  async update(id: number, data: UserUpdateData): Promise<User | undefined> {
     const fields: string[] = [];
-    const values: any[] = [];
+    const values: (string | number | boolean | UserRole[] | null)[] = [];
     let index = 1;
 
     if (data.username !== undefined) {
@@ -152,15 +173,11 @@ export class UserPostgresRepository implements UserRepository {
     `;
 
     try {
-      const { rows } = await this.db.query(query, values);
+      const { rows } = await this.db.query<UserRow>(query, values);
       const row = rows[0];
       return row ? mapRowToUser(row) : undefined;
-    } catch (error: any) {
-      const domainError = mapPostgresErrorToDomainError(error);
-      if (domainError) {
-        throw domainError;
-      }
-      throw error;
+    } catch (error) {
+      throw mapPostgresErrorToDomainError(error) ?? error;
     }
   }
 
@@ -185,7 +202,7 @@ export class UserPostgresRepository implements UserRepository {
       WHERE u.id = $1
     `;
 
-    const { rows } = await this.db.query(query, [userId]);
+    const { rows } = await this.db.query<UserProfileStatsRow>(query, [userId]);
     const row = rows[0] ?? {
       reviews_count: 0,
       upvotes: 0,

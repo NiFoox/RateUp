@@ -82,10 +82,12 @@ Registra un usuario activo con rol `USER`. La creación administrativa sigue dis
 - username
   - obligatorio
   - string no vacío (mínimo 1 carácter)
+  - máximo 100 caracteres después de `trim()`
 
 - email
   - obligatorio
   - string con formato de email válido
+  - máximo 255 caracteres después de `trim()`
 
 - password
   - obligatorio
@@ -142,7 +144,7 @@ Obtiene el perfil privado del usuario autenticado.
       "upvotes": 12,
       "downvotes": 1,
       "score": 11,
-      "likesRate": 0.92
+      "likesRate": 0.9230769230769231
     }
   }
 }
@@ -158,6 +160,15 @@ Obtiene el perfil privado del usuario autenticado.
 ---
 
 # Usuarios
+
+Todos los endpoints protegidos usan el estado y los roles vigentes obtenidos por el middleware de sesión. El perfil público no requiere autenticación.
+
+Los errores de Users usan el middleware común: `{ "message": "...", "code": "...", "field": "..." }` (`field` solo cuando corresponde). Las respuestas antiguas con `error` se sustituyen por este formato. Se aplican los siguientes errores comunes, además de los indicados en cada endpoint:
+
+- `400 VALIDATION_ERROR`: body, params o query inválidos; incluye `formErrors` y `fieldErrors`.
+- `401 UNAUTHENTICATED`: en rutas protegidas, token ausente/inválido o cuenta eliminada/inactiva.
+- `403 FORBIDDEN`: usuario autenticado sin los permisos requeridos.
+- `500 INTERNAL_ERROR`: fallo interno; no se exponen consultas ni detalles de PostgreSQL.
 
 ### Roles disponibles
 
@@ -180,6 +191,7 @@ Obtiene el perfil público de un usuario por su ID.
   - obligatorio
   - número entero
   - mayor que 0
+  - máximo: 2147483647 (rango del ID `SERIAL` de PostgreSQL)
 
 **Response 200:**
 
@@ -196,13 +208,15 @@ Obtiene el perfil público de un usuario por su ID.
       "upvotes": 12,
       "downvotes": 1,
       "score": 11,
-      "likesRate": 0.92
+      "likesRate": 0.9230769230769231
     }
   }
 }
 ```
 
 **Notas sobre los campos:**
+
+- `score` es upvotes menos downvotes. `likesRate` es upvotes dividido por el total de votos, sin redondeo; vale 0 si no hay votos.
 
 - `avatarUrl` puede ser:  
   - una URL (`"https://example.com/avatar.png"`), **o**  
@@ -214,7 +228,7 @@ Obtiene el perfil público de un usuario por su ID.
 
 **Posibles errores:**
 
-- 404 — Usuario no encontrado
+- 404 `USER_NOT_FOUND` — Usuario inexistente o inactivo (no se publica su perfil)
 
 ---
 
@@ -239,10 +253,12 @@ Crea un nuevo usuario. Solo accesible para administradores.
 - username
   - obligatorio
   - string no vacío (mínimo 1 carácter)
+  - máximo 100 caracteres después de `trim()`
 
 - email
   - obligatorio
   - string con formato de email válido
+  - máximo 255 caracteres después de `trim()`
 
 - password
   - obligatorio
@@ -258,6 +274,8 @@ Crea un nuevo usuario. Solo accesible para administradores.
   - opcional
   - boolean
   - valor por defecto: true
+
+Se aplica `trim()` a username y email. No se aceptan campos adicionales. El password se almacena como hash y nunca se devuelve.
 
 **Response 201:**
 
@@ -276,8 +294,10 @@ Crea un nuevo usuario. Solo accesible para administradores.
 
 **Posibles errores:**
 
-- 409 — El nombre de usuario o email ya existen  
-- 500 — Error al crear usuario
+- 409 `USERNAME_TAKEN`, `field: "username"` — Nombre de usuario en uso.
+- 409 `EMAIL_TAKEN`, `field: "email"` — Email en uso.
+
+Los conflictos se traducen desde la restricción de unicidad de PostgreSQL, también ante creaciones concurrentes. El formato coincide con los ejemplos de conflictos de `PATCH /users/:id`.
 
 ---
 
@@ -287,8 +307,8 @@ Lista usuarios con paginación. Solo accesible para administradores.
 
 **Query params:**
 
-- `page`: número de página (opcional)
-- `pageSize`: cantidad de elementos por página (opcional)
+- `page`: número de página (opcional; vacío o solo espacios usa el valor por defecto)
+- `pageSize`: cantidad de elementos por página (opcional; vacío o solo espacios usa el valor por defecto)
 - `search`: término de búsqueda por username o email (opcional)
 
 ### Validaciones de los query params
@@ -310,6 +330,8 @@ Lista usuarios con paginación. Solo accesible para administradores.
   - opcional
   - string recortado (se hace `trim()`)
   - si se envía vacío, se ignora
+
+La búsqueda compara username y email sin distinguir mayúsculas; el resultado se ordena por ID ascendente. Las query adicionales se ignoran. Las páginas y tamaños fraccionarios (por ejemplo, `page=1.7`) se rechazan con `400`.
 
 **Response 200:**
 
@@ -345,7 +367,8 @@ Lista usuarios con paginación. Solo accesible para administradores.
 
 **Posibles errores:**
 
-- 500 — Error al listar usuarios
+- 400 `VALIDATION_ERROR` — Query inválida.
+- 500 `INTERNAL_ERROR` — Error interno al listar usuarios.
 
 
 ---
@@ -364,6 +387,7 @@ Obtiene un usuario por su ID. Solo accesible para administradores.
   - obligatorio
   - número entero
   - mayor que 0
+  - máximo: 2147483647 (rango del ID `SERIAL` de PostgreSQL)
 
 **Response 200:**
 
@@ -382,7 +406,7 @@ Obtiene un usuario por su ID. Solo accesible para administradores.
 
 **Posibles errores:**
 
-- 404 — Usuario no encontrado
+- 404 `USER_NOT_FOUND` — Usuario no encontrado
 
 ---
 
@@ -408,6 +432,7 @@ Solo puede ser ejecutado por:
   - obligatorio
   - número entero
   - mayor que 0
+  - máximo: 2147483647 (rango del ID `SERIAL` de PostgreSQL)
 
 **Body:**
 
@@ -427,11 +452,13 @@ Solo puede ser ejecutado por:
 - username
   - opcional
   - string no vacío (mínimo 1 carácter)
+  - máximo 100 caracteres después de `trim()`
   - se aplica `trim()`
 
 - email
   - opcional
   - string con formato de email válido
+  - máximo 255 caracteres después de `trim()`
   - se aplica `trim()`
 
 - password
@@ -457,14 +484,16 @@ Solo puede ser ejecutado por:
 
 ### Notas adicionales del body
 
-- El body puede enviarse vacío; en ese caso no se actualiza ningún campo.  
+- El body puede enviarse vacío; en ese caso no se actualiza ningún campo.
+- `avatarUrl` y `bio` vacíos o con solo espacios se ignoran; `null` elimina el valor almacenado.
+- `roles` se rechaza con `400` en este endpoint, incluso para ADMIN; se modifica por `PATCH /users/:id/roles`.
 - No se permiten campos adicionales fuera de los definidos en este esquema (`.strict()`).
 
 ### Reglas de autorización
 
-- Debe existir un usuario autenticado en el token (`Authorization: Bearer <token>`).
+- Debe existir un usuario activo autenticado (`Authorization: Bearer <token>`); los permisos se toman de PostgreSQL.
 - El usuario autenticado debe ser:
-  - el dueño del perfil (`sub` del token igual al `id` del path), **o**
+  - el dueño del perfil (ID autenticado igual al `id` del path), **o**
   - tener rol `"ADMIN"`.
 - Si el usuario NO es admin:
   - no puede modificar `isActive` (y tampoco otros campos administrativos).
@@ -486,9 +515,9 @@ Solo puede ser ejecutado por:
 
 **Posibles errores:**
 
-- 401 — No autenticado  
-- 403 — No estás autorizado para modificar este usuario / No estás autorizado para modificar roles o estado del usuario  
-- 404 — Usuario no encontrado
+- 401 `UNAUTHENTICATED` — No autenticado
+- 403 `FORBIDDEN` — No es dueño ni ADMIN, o intenta modificar `isActive` sin ser ADMIN
+- 404 `USER_NOT_FOUND` — Usuario no encontrado
 
 ### Errores
 
@@ -545,6 +574,7 @@ Solo puede ser ejecutado por usuarios con rol `"ADMIN"`.
   - obligatorio
   - número entero
   - mayor que 0
+  - máximo: 2147483647 (rango del ID `SERIAL` de PostgreSQL)
 
 **Body:**
 
@@ -561,10 +591,12 @@ Solo puede ser ejecutado por usuarios con rol `"ADMIN"`.
   - array con al menos un rol
   - cada elemento debe ser un rol válido (por ejemplo: "USER", "ADMIN")
 
+No se aceptan campos adicionales: se rechazan con `400 VALIDATION_ERROR`. Los roles enviados reemplazan la lista anterior; no se agregan automáticamente a ella.
+
 ### Reglas de autorización
 
-- Debe existir un usuario autenticado en el token (`Authorization: Bearer <token>`).
-- El usuario autenticado debe tener el rol `"ADMIN"`.
+- Debe existir un usuario activo autenticado (`Authorization: Bearer <token>`); los permisos se toman de PostgreSQL.
+- El usuario autenticado debe tener actualmente el rol `"ADMIN"`.
 - Usuarios sin rol `"ADMIN"` no pueden modificar roles de otros usuarios.
 
 **Response 200:**
@@ -584,9 +616,9 @@ Solo puede ser ejecutado por usuarios con rol `"ADMIN"`.
 
 **Posibles errores:**
 
-- 401 — No autenticado  
-- 403 — Solo un administrador puede modificar roles  
-- 404 — Usuario no encontrado
+- 401 `UNAUTHENTICATED` — No autenticado
+- 403 `FORBIDDEN` — Solo un administrador puede modificar roles
+- 404 `USER_NOT_FOUND` — Usuario no encontrado
 
 ---
 
@@ -609,11 +641,14 @@ Solo puede ser ejecutado por usuarios con rol `"ADMIN"`.
   - obligatorio
   - número entero
   - mayor que 0
+  - máximo: 2147483647 (rango del ID `SERIAL` de PostgreSQL)
 
 ### Reglas de autorización
 
-- Debe existir un usuario autenticado en el token (`Authorization: Bearer <token>`).
-- El usuario autenticado debe tener rol `"ADMIN"`.
+- Debe existir un usuario activo autenticado (`Authorization: Bearer <token>`); los permisos se toman de PostgreSQL.
+- El usuario autenticado debe tener actualmente el rol `"ADMIN"`.
+
+La eliminación conserva los borrados en cascada de las reseñas, comentarios y votos relacionados. Los tokens del usuario eliminado dejan de autenticar en la siguiente petición protegida.
 
 **Response 204:**
 
@@ -621,9 +656,9 @@ _No content._
 
 **Posibles errores:**
 
-- 401 — No autenticado  
-- 403 — Solo un administrador puede eliminar usuarios  
-- 404 — Usuario no encontrado
+- 401 `UNAUTHENTICATED` — No autenticado
+- 403 `FORBIDDEN` — Solo un administrador puede eliminar usuarios
+- 404 `USER_NOT_FOUND` — Usuario no encontrado
 
 ---
 

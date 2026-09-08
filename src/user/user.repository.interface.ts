@@ -1,4 +1,8 @@
-import { User } from './user.entity.js';
+import type { User } from './user.entity.js';
+
+export type UserUpdateData = Partial<Pick<User,
+  'username' | 'email' | 'passwordHash' | 'roles' | 'isActive' | 'avatarUrl' | 'bio'
+>>;
 
 export interface UserProfileStats {
   reviewsCount: number;
@@ -16,7 +20,7 @@ export interface UserRepository {
     pageSize: number,
     searchTerm?: string,
   ): Promise<{ data: User[]; total: number }>;
-  update(id: number, data: Partial<User>): Promise<User | undefined>;
+  update(id: number, data: UserUpdateData): Promise<User | undefined>;
   delete(id: number): Promise<boolean>;
 
   getProfileStats(userId: number): Promise<UserProfileStats>;

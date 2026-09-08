@@ -4,13 +4,11 @@ import {
   validateParams,
   validateQuery,
 } from '../shared/middlewares/validate.js';
-import {
-  UserCreateSchema,
-  UserUpdateSchema,
-  UserIdParamSchema,
-  UserListQuerySchema,
-  UserRolesUpdateSchema,
-} from './validators/user.validation.js';
+import { UserCreateSchema } from './dto/create-user.dto.js';
+import { UserAdminUpdateSchema } from './dto/update-user.dto.js';
+import { UserIdParamSchema } from './dto/user-id.dto.js';
+import { UserListQuerySchema } from './dto/list-users.dto.js';
+import { UserRolesUpdateSchema } from './dto/update-user-roles.dto.js';
 import { UserController } from './user.controller.js';
 import type { UserService } from './user.service.js';
 import { requireRole, type AuthMiddleware } from '../shared/middlewares/auth.js';
@@ -68,7 +66,7 @@ export default function buildUserRouter(userService: UserService, auth: AuthMidd
     '/:id',
     auth.requireAuth,
     validateParams(UserIdParamSchema),
-    validateBody(UserUpdateSchema),
+    validateBody(UserAdminUpdateSchema),
     controller.update.bind(controller),
   );
 

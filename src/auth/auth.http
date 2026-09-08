@@ -1,9 +1,8 @@
 ### Register (público)
+# Body público: username (1–100), email válido (máx. 255), password (mín. 8).
+# roles e isActive se rechazan; el servidor asigna USER y activo.
 POST http://localhost:3000/api/auth/register
 Content-Type: application/json
-
-# Body público: solo username, email y password de 8+ caracteres.
-# roles e isActive se rechazan; el servidor asigna USER y activo.
 
 {
   "username": "nuevo",

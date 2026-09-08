@@ -3,7 +3,7 @@ import type { AuthService } from './auth.service.js';
 import type { AuthLoginDto } from './dto/login.dto.js';
 import type { AuthRegisterDto } from './dto/register.dto.js';
 import type { AuthLoginResponseDto } from './dto/auth.dto.js';
-import type { UserDto, PrivateUserProfileDto } from '../user/user.service.js';
+import type { UserDto, PrivateUserProfileDto } from '../user/dto/user.dto.js';
 import type { ValidatedLocals } from '../shared/middlewares/validate.js';
 import type { AuthenticatedRequest } from '../shared/middlewares/auth.js';
 

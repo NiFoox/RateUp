@@ -1,4 +1,8 @@
-### Crear usuario (solo ADMIN, uso administrativo)
+# IDs: enteros positivos hasta 2147483647.
+# Errores: message/code y field cuando corresponde; nunca detalles SQL.
+
+### Crear usuario (solo ADMIN; username máx. 100, email máx. 255; password mín. 8)
+# Conflictos: 409 USERNAME_TAKEN/EMAIL_TAKEN con field. Validación: 400 VALIDATION_ERROR.
 POST http://localhost:3000/api/users
 Content-Type: application/json
 Authorization: Bearer PASTE_ADMIN_JWT_TOKEN_HERE
@@ -26,7 +30,7 @@ GET http://localhost:3000/api/users/1
 Content-Type: application/json
 Authorization: Bearer PASTE_ADMIN_JWT_TOKEN_HERE
 
-### Actualizar usuario (dueño o ADMIN) - ejemplo completo con avatar y bio
+### Actualizar usuario (dueño o ADMIN) - campos comunes, sin roles ni isActive
 PATCH http://localhost:3000/api/users/1
 Content-Type: application/json
 Authorization: Bearer PASTE_JWT_TOKEN_HERE
@@ -35,7 +39,6 @@ Authorization: Bearer PASTE_JWT_TOKEN_HERE
   "username": "john_updated",
   "email": "john_updated@example.com",
   "password": "newpassword123",
-  "isActive": true,
   "avatarUrl": "https://cdn.example.com/avatars/john.png",
   "bio": "Jugador tryhard de ranked y fan de los RPG"
 }
@@ -50,7 +53,7 @@ Authorization: Bearer PASTE_JWT_TOKEN_HERE
   "bio": "Ahora también juego indies raros"
 }
 
-### Actualizar roles de un usuario (solo ADMIN)
+### Actualizar roles de un usuario (solo ADMIN; body estricto, solo roles)
 PATCH http://localhost:3000/api/users/1/roles
 Content-Type: application/json
 Authorization: Bearer PASTE_ADMIN_JWT_TOKEN_HERE
@@ -59,10 +62,10 @@ Authorization: Bearer PASTE_ADMIN_JWT_TOKEN_HERE
   "roles": ["ADMIN"]
 }
 
-### Desactivar usuario (dueño o ADMIN si actualiza su propio isActive, o ADMIN si lo usa como gestión)
+### Desactivar usuario (solo ADMIN; un usuario común recibe 403)
 PATCH http://localhost:3000/api/users/1
 Content-Type: application/json
-Authorization: Bearer PASTE_JWT_TOKEN_HERE
+Authorization: Bearer PASTE_ADMIN_JWT_TOKEN_HERE
 
 {
   "isActive": false
@@ -73,6 +76,6 @@ DELETE http://localhost:3000/api/users/1
 Content-Type: application/json
 Authorization: Bearer PASTE_ADMIN_JWT_TOKEN_HERE
 
-### Ver perfil público de un usuario (sin auth, sólo datos de perfil y stats)
+### Ver perfil público (sin auth; usuario inexistente o inactivo: 404 USER_NOT_FOUND)
 GET http://localhost:3000/api/users/profile/1
 Content-Type: application/json
