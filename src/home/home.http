@@ -1,5 +1,30 @@
-### Top games (mejores juegos para el home)
-GET http://localhost:3000/api/home/top-games?limit=5&minReviews=3
+# Home público: limit entero 1..50; minReviews entero >=0; days entero 1..30.
+# Defaults SOLO al omitir: limit=10, minReviews=1, days=7.
+# Errores: 400 VALIDATION_ERROR con formErrors/fieldErrors; 500 INTERNAL_ERROR.
 
-### Reseñas trending (más votadas/recientes para el home)
+### Top games con defaults
+GET http://localhost:3000/api/home/top-games
+
+### Top games: mismo query que Angular
+GET http://localhost:3000/api/home/top-games?limit=5&minReviews=1
+
+### Incluir juegos sin reseñas
+GET http://localhost:3000/api/home/top-games?limit=50&minReviews=0
+
+### Trending: mismo query que Angular
 GET http://localhost:3000/api/home/trending-reviews?limit=5&days=7
+
+### Trending con defaults
+GET http://localhost:3000/api/home/trending-reviews
+
+### Fracción: 400 VALIDATION_ERROR, no se normaliza
+GET http://localhost:3000/api/home/top-games?limit=1.7
+
+### Texto inválido: 400 VALIDATION_ERROR
+GET http://localhost:3000/api/home/trending-reviews?days=abc
+
+### Fuera de rango: 400 VALIDATION_ERROR
+GET http://localhost:3000/api/home/trending-reviews?days=31
+
+### Valor presente vacío: 400 VALIDATION_ERROR
+GET http://localhost:3000/api/home/top-games?minReviews=

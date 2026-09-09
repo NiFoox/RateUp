@@ -1,7 +1,13 @@
-import { Request, Response } from 'express';
+import type { Request, Response } from 'express';
 import type { GameRepository } from '../game/game.repository.interface.js';
 import type { ReviewRepository } from '../review/review.repository.interface.js';
-import { logger } from '../shared/logger.js';
+import type { ValidatedLocals } from '../shared/middlewares/validate.js';
+import type {
+  TopGamesQueryDto,
+  TrendingReviewsQueryDto,
+  TopGamesResponseDto,
+  TrendingReviewsResponseDto,
+} from './dto/home.dto.js';
 
 export class HomeController {
   constructor(
@@ -9,73 +15,21 @@ export class HomeController {
     private readonly reviewRepository: ReviewRepository,
   ) {}
 
-  // GET /api/home/top-games
-  async getTopGames(req: Request, res: Response): Promise<void> {
-    try {
-      const rawLimit = req.query.limit;
-      const rawMinReviews = req.query.minReviews;
-
-      let limit =
-        typeof rawLimit === 'string' ? Number(rawLimit) : 10;
-      let minReviews =
-        typeof rawMinReviews === 'string' ? Number(rawMinReviews) : 1;
-
-      if (!Number.isFinite(limit) || limit <= 0 || limit > 50) {
-        limit = 10;
-      }
-      if (!Number.isFinite(minReviews) || minReviews < 0) {
-        minReviews = 1;
-      }
-
-      const games = await this.gameRepository.getTopRatedGames(
-        limit,
-        minReviews,
-      );
-
-      res.json({
-        limit,
-        minReviews,
-        count: games.length,
-        items: games,
-      });
-    } catch (error) {
-      logger.error({ error }, '[HomeController] topGames failed');
-      res.status(500).json({ message: 'Internal server error' });
-    }
+  async getTopGames(
+    _req: Request,
+    res: Response<TopGamesResponseDto, ValidatedLocals<{ query: TopGamesQueryDto }>>,
+  ): Promise<void> {
+    const { limit, minReviews } = res.locals.validated.query;
+    const items = await this.gameRepository.getTopRatedGames(limit, minReviews);
+    res.json({ limit, minReviews, count: items.length, items });
   }
 
-  // GET /api/home/trending-reviews
-  async getTrendingReviews(req: Request, res: Response): Promise<void> {
-    try {
-      const rawLimit = req.query.limit;
-      const rawDays = req.query.days;
-
-      let limit =
-        typeof rawLimit === 'string' ? Number(rawLimit) : 10;
-      let days =
-        typeof rawDays === 'string' ? Number(rawDays) : 7;
-
-      if (!Number.isFinite(limit) || limit <= 0 || limit > 50) {
-        limit = 10;
-      }
-      if (!Number.isFinite(days) || days <= 0 || days > 30) {
-        days = 7;
-      }
-
-      const reviews = await this.reviewRepository.getTrendingReviews(
-        limit,
-        days,
-      );
-
-      res.json({
-        limit,
-        days,
-        count: reviews.length,
-        items: reviews,
-      });
-    } catch (error) {
-      logger.error({ error }, '[HomeController] trendingReviews failed');
-      res.status(500).json({ message: 'Internal server error' });
-    }
+  async getTrendingReviews(
+    _req: Request,
+    res: Response<TrendingReviewsResponseDto, ValidatedLocals<{ query: TrendingReviewsQueryDto }>>,
+  ): Promise<void> {
+    const { limit, days } = res.locals.validated.query;
+    const items = await this.reviewRepository.getTrendingReviews(limit, days);
+    res.json({ limit, days, count: items.length, items });
   }
 }

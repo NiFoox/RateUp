@@ -1,4 +1,5 @@
-import jwt, { type SignOptions, type Secret } from 'jsonwebtoken';
+import { config } from '../shared/config.js';
+import jwt, { type SignOptions } from 'jsonwebtoken';
 import { verifyPassword } from '../common/password.util.js';
 import type { UserRepository } from '../user/user.repository.interface.js';
 import type { AuthLoginDto } from './dto/login.dto.js';
@@ -17,14 +18,6 @@ export class AuthService {
     private readonly userRepository: UserRepository,
     private readonly userService: UserService,
   ) {}
-
-  private getJwtSecret(): Secret {
-    const secret = process.env.JWT_SECRET;
-    if (!secret) {
-      throw new Error('JWT_SECRET is not defined');
-    }
-    return secret;
-  }
 
   private toAuthUser(user: User): AuthUserDto {
     if (user.id == null) {
@@ -83,7 +76,7 @@ export class AuthService {
 
     const authUser = this.toAuthUser(user);
     const { expiresAt, expiresIn } = this.resolveExpires(rememberMe);
-    const secret = this.getJwtSecret();
+    const secret = config.jwtSecret;
 
     const payload = {
       sub: String(authUser.id),
@@ -131,7 +124,7 @@ export class AuthService {
   }
 
   async authenticate(token: string): Promise<AuthPrincipal | null> {
-    const secret = this.getJwtSecret();
+    const secret = config.jwtSecret;
     let decoded: string | jwt.JwtPayload;
     try {
       decoded = jwt.verify(token, secret);

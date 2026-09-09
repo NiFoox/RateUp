@@ -1,5 +1,4 @@
 import cors from 'cors';
-import 'dotenv/config';
 import express from 'express';
 import helmet from 'helmet';
 import buildGameRouter from './game/game.routes.js';
@@ -63,17 +62,3 @@ app.use(
 app.use(httpErrorMiddleware);
 
 export default app;
-
-// TODO:
-// - Refactor dto (matar validators y meter todo en dto por separado)
-// - Usar ORM tipo TypeORM o Prisma?
-// - Usar más los types en vez de tanto any?
-// - Más tests
-// - Levantar api en docker?
-// - Probar llamar api externa?
-// - Refactorizar PATCH de Users
-// - Refactorizar controllers para no repetir tanto el parseo/validación de dto
-// - Refactorizar los servicios para que lancen errores específicos y no genéricos
-// - Refactorizar los repos para que lancen errores específicos y no genéricos
-// - Refactorizar para estandarizar las respuestas de listas (data + total)
-// - Refactorizar para estandarizar el RequireAuth middleware

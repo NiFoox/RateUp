@@ -30,6 +30,7 @@ const reviewCommentService = new ReviewCommentService(reviewCommentRepository);
 const reviewVoteService = new ReviewVoteService(reviewVoteRepository);
 
 export const container = {
+  pool,
   reviewCommentService,
   reviewVoteService,
   reviewService,

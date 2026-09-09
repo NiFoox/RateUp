@@ -1,3 +1,4 @@
+import { config } from '../../src/shared/config.js';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, jest } from '@jest/globals';
 import express from 'express';
 import jwt from 'jsonwebtoken';
@@ -17,14 +18,12 @@ describe('Games HTTP contract', () => {
   const repository = makeGameRepository();
   const game = { id: 10, name: 'Celeste', description: 'Plataformas', genre: 'Indie' };
   const input = { name: game.name, description: game.description, genre: game.genre };
-  const secret = 'games-test-secret';
-  const previousSecret = process.env.JWT_SECRET;
+  const secret = config.jwtSecret;
   let server: Awaited<ReturnType<typeof startHttpServer>>;
   let adminToken: string;
   let userToken: string;
 
   beforeAll(async () => {
-    process.env.JWT_SECRET = secret;
     adminToken = jwt.sign({ sub: '1', email: 'admin@example.test', roles: ['ADMIN'] }, secret);
     userToken = jwt.sign({ sub: '2', email: 'user@example.test', roles: ['USER'] }, secret);
     const users: jest.Mocked<UserRepository> = {
@@ -64,8 +63,6 @@ describe('Games HTTP contract', () => {
 
   afterAll(async () => {
     await server.close();
-    if (previousSecret === undefined) delete process.env.JWT_SECRET;
-    else process.env.JWT_SECRET = previousSecret;
   });
 
   function request(path: string, method = 'GET', body?: unknown, token?: string) {

@@ -8,6 +8,77 @@ Autenticación: JWT (Bearer Token) en el header `Authorization`
 
 ---
 
+# Ejecución y configuración
+
+La API corre en Node.js y PostgreSQL; `docker-compose.yml` levanta **solo PostgreSQL 16**, no la API ni el frontend. Ejecutar los comandos desde la raíz del repositorio.
+
+1. Instalar las versiones del lockfile con `npm ci`.
+2. Copiar `.env.example` a `.env`. Reemplazar el `JWT_SECRET` vacío por un secreto propio. Podés generar uno localmente con `node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))"` y pegarlo en `.env`. No commitear ese archivo.
+3. Levantar la base: `docker compose up -d postgres`. Esperar hasta que `docker compose exec -T postgres pg_isready -U rateup -d rateupdb` indique que acepta conexiones.
+4. En una base nueva, ejecutar los scripts en este orden (Git Bash/Linux/macOS):
+
+```bash
+docker compose exec -T postgres psql -U rateup -d rateupdb -v ON_ERROR_STOP=1 < src/user/migrations/script.sql
+docker compose exec -T postgres psql -U rateup -d rateupdb -v ON_ERROR_STOP=1 < src/game/migrations/script.sql
+docker compose exec -T postgres psql -U rateup -d rateupdb -v ON_ERROR_STOP=1 < src/review/migrations/script.sql
+docker compose exec -T postgres psql -U rateup -d rateupdb -v ON_ERROR_STOP=1 < src/review-comment/migrations/script.sql
+docker compose exec -T postgres psql -U rateup -d rateupdb -v ON_ERROR_STOP=1 < src/review-vote/migrations/script.sql
+```
+
+Los scripts crean las tablas si faltan; no son un sistema de migración de versiones de tablas existentes. El volumen `postgres_data` conserva la base. Cambiar las variables de Compose no cambia automáticamente las credenciales de un volumen previamente inicializado.
+
+5. Desarrollo: `npm run start:dev`. Ejecución compilada: `npm run build` y luego `node dist/src/server.js`.
+6. Comprobaciones: `npm test -- --runInBand`, `npm run build`, `npx --no-install tsc -p tsconfig.test.json`, `npm run lint`. Los tests también cargan la configuración: requieren un `JWT_SECRET` de prueba en el entorno o `.env`.
+
+Para preparar el primer administrador de una base local vacía, registrar una cuenta por `/auth/register` y asignar ADMIN desde la consola SQL, usando el username de esa cuenta. Por ejemplo, dentro de `docker compose exec postgres psql -U rateup -d rateupdb`:
+
+```sql
+UPDATE users SET roles = ARRAY['USER', 'ADMIN']::text[] WHERE username = 'demo-admin';
+```
+
+Después hacer login y usar su token en los ejemplos administrativos. El registro HTTP público nunca acepta roles. Los `.http` usan IDs ilustrativos: reemplazarlos por los IDs devueltos por las creaciones.
+
+## Variables de entorno
+
+`src/shared/config.ts` carga dotenv antes de validar con Zod. Las variables ya definidas en el proceso tienen prioridad sobre `.env`. La configuración se lee una vez al importar el módulo; cambiar el entorno requiere reiniciar la API.
+
+| Variable | Default al omitir | Validación |
+| --- | --- | --- |
+| `JWT_SECRET` | Ninguno; obligatorio | String no vacío ni solo espacios; no existe fallback. |
+| `PORT` | `3000` | Dígitos decimales que representen un entero entre 1 y 65535. |
+| `POSTGRES_HOST` | `localhost` | String no vacío. |
+| `POSTGRES_PORT` | `5432` | Mismas reglas que PORT. |
+| `POSTGRES_USER` | `rateup` | String no vacío. |
+| `POSTGRES_PASSWORD` | `rateup123` | String no vacío; default local compatible con Compose. |
+| `POSTGRES_DB` | `rateupdb` | String no vacío. |
+| `NODE_ENV` | `development` | `development`, `test` o `production`. |
+| `LOG_LEVEL` | `info` en production; `debug` en otros entornos | `fatal`, `error`, `warn`, `info`, `debug`, `trace` o `silent`. |
+
+Un valor presente pero vacío no activa un default. Puertos fraccionarios, cero, texto o fuera de rango impiden el inicio. La aplicación falla **antes de escuchar HTTP** si la configuración es inválida e informa los nombres de las variables, sin imprimir sus valores. Los defaults PostgreSQL son para la ejecución local de este proyecto; configurar credenciales propias en otros entornos.
+
+El pool conserva máximo 10 conexiones, timeout de conexión 5 segundos e inactividad 30 segundos. Conecta de forma diferida: el mensaje de inicio HTTP no prueba por sí solo que PostgreSQL esté disponible; verificar también una petición que consulte la base.
+
+## Cierre del servidor
+
+`SIGINT` (Ctrl+C) y `SIGTERM` dejan de aceptar conexiones nuevas, esperan a que termine el trabajo HTTP en curso y luego ejecutan `pool.end()`. Con los recursos cerrados, Node finaliza con código 0. Señales repetidas no duplican el cierre.
+
+Los errores no capturados, rechazos no manejados y errores del servidor/pool inician el mismo cierre con código 1. Hay un plazo total de 10 segundos: si se excede, se fuerzan las conexiones HTTP y la salida con código 1. En ese caso excepcional no se garantiza completar las peticiones pendientes.
+
+# Convenciones comunes del contrato
+
+Las rutas documentadas debajo omiten el prefijo `/api`. Se conservan sus diferentes estructuras (`items`, `data`, `count`, `total`, `limit`, `pageSize`); no son sinónimos intercambiables.
+
+- Body JSON: errores de sintaxis `400 INVALID_JSON`; tamaño superior al límite de 100kb de Express `413 PAYLOAD_TOO_LARGE`.
+- Entradas que incumplen un schema: `400` con `{ message: "Validation error", code: "VALIDATION_ERROR", formErrors, fieldErrors }`.
+- Errores esperados: `{ message, code, field? }`; `field` se omite cuando no corresponde.
+- Rutas protegidas: sesión ausente/inválida, usuario eliminado o inactivo → `401 UNAUTHENTICATED`. Sesión válida sin permiso → `403 FORBIDDEN`.
+- Fallos internos: `500` con `{ message: "Internal server error", code: "INTERNAL_ERROR" }`, sin detalles de PostgreSQL.
+- Estas respuestas comunes aplican aunque una sección enumere solo errores específicos. Una ruta no definida conserva el 404 de Express (puede ser HTML; no es el error de dominio de un recurso inexistente).
+- En las escrituras se rechazan campos extra del body. Las query adicionales se ignoran. Home y `/reviews/:id/full` aplican defaults solo al omitir el parámetro; los listados de Games/Users/Reviews/Comments también conservan defaults ante strings vacíos o con espacios.
+- Las fechas expuestas se serializan a strings ISO; los campos `updatedAt` pueden ser null donde se muestran así. Los DTOs públicos de autores no incluyen email. El email queda en Auth, perfiles privados y respuestas de Users según sus permisos.
+
+---
+
 # Autenticación
 
 El JWT conserva su duración (4 horas, o 30 días con `rememberMe`). En cada petición que usa autenticación se verifica el token y se consulta al usuario por `sub`: debe existir y estar activo; sus roles actuales en PostgreSQL determinan los permisos. Los roles y el email antiguos del token no se usan para autorizar.
@@ -34,7 +105,7 @@ Autentica un usuario.
 
 - usernameOrEmail
   - obligatorio
-  - string no vacío (mínimo 1 carácter)
+  - string no vacío (mínimo 1 carácter), después de `trim()`
 
 - password
   - obligatorio
@@ -62,6 +133,8 @@ Autentica un usuario.
 ```
 
 ---
+
+El body de login es estricto: campos adicionales se rechazan con `400 VALIDATION_ERROR`. `rememberMe` debe ser boolean real; no se convierte desde string. Credenciales incorrectas o usuario inactivo: `401 INVALID_CREDENTIALS`.
 
 ## POST `/auth/register`
 
@@ -94,6 +167,7 @@ Registra un usuario activo con rol `USER`. La creación administrativa sigue dis
   - string no vacío
   - mínimo 8 caracteres
 
+- Se aplica `trim()` a username y email; la contraseña no se recorta.
 - `roles`, `isActive` y cualquier otro campo adicional se rechazan con `400`.
 - El servidor siempre asigna `roles: ["USER"]` e `isActive: true`.
 
@@ -664,6 +738,8 @@ _No content._
 
 # Games
 
+Lecturas públicas; escrituras solo ADMIN vigente. Se aplican los errores comunes de validación, sesión y servidor. Los nombres son únicos con comparación exacta de PostgreSQL (no se convierten a minúsculas).
+
 ---
 
 ## POST `/games`
@@ -711,6 +787,7 @@ Solo accesible para administradores.
 
 ### Reglas adicionales
 
+- El body es estricto: solo admite `name`, `description` y `genre`.
 - El nombre del juego debe ser único; si el nombre ya existe, se devuelve `409` con `code: GAME_NAME_TAKEN` y `field: name`. La restricción de la base también se traduce si el conflicto ocurre durante la escritura.
 
 **Response 201:**
@@ -814,9 +891,11 @@ Si `all = true`, devuelve **todos los juegos que coinciden con los filtros** sin
   - textos `true` o `false` en la URL (se convierten a boolean)
   - otros valores no vacíos se rechazan con `400`
   - valor por defecto: false  
-  - si es `true`, se ignoran `page` y `limit` y se aplican `search` y `genre` al listado completo
+  - si es `true`, `page` y `limit` no se usan para paginar, pero **se validan igualmente**; `all=true&page=1.7` devuelve 400. Se aplican `search` y `genre` al listado completo
 
 ---
+
+La búsqueda usa ILIKE en nombre/descripción; el género se compara por igualdad exacta. Ambas modalidades ordenan por ID ascendente.
 
 ### Response 200 (modo paginado: `all = false` o no enviado)
 
@@ -988,6 +1067,8 @@ _No content._
 
 # Home
 
+Ambas rutas son públicas y no personalizan por JWT. Conservan `count` como cantidad de `items` devueltos, no como total paginado.
+
 ## GET `/home/top-games`
 
 Obtiene un listado de los juegos mejor valorados, ordenados por puntaje promedio y cantidad de reseñas.
@@ -999,19 +1080,10 @@ Obtiene un listado de los juegos mejor valorados, ordenados por puntaje promedio
 
 ### Validaciones de los query params
 
-- limit  
-  - opcional  
-  - se interpreta como número si viene en formato string  
-  - si no es un número válido, o es `<= 0`, o es `> 50`, se usa el valor por defecto `10`  
-  - valor por defecto: 10  
-
-- minReviews  
-  - opcional  
-  - se interpreta como número si viene en formato string  
-  - si no es un número válido, o es `< 0`, se usa el valor por defecto `1`  
-  - valor por defecto: 1  
-
-> Nota: si los parámetros son inválidos, el backend **normaliza** los valores (no retorna 400).
+- `limit`: entero entre 1 y 50; default 10 solo si no se envía.
+- `minReviews`: entero >= 0; default 1 solo si no se envía. Con 0 se admiten juegos sin reseñas (`avgScore: 0`, `reviewCount: 0`).
+- Valores presentes inválidos, vacíos, repetidos, fraccionarios o fuera de rango devuelven `400 VALIDATION_ERROR`. Las query adicionales se ignoran.
+- Orden: promedio descendente, cantidad de reseñas descendente y nombre ascendente para desempatar. Se conserva el promedio numérico sin redondearlo en la API.
 
 **Response 200:**
 
@@ -1041,7 +1113,8 @@ Obtiene un listado de los juegos mejor valorados, ordenados por puntaje promedio
 
 **Posibles errores:**
 
-- 500 — Internal server error
+- 400 — VALIDATION_ERROR (query inválido)
+- 500 — INTERNAL_ERROR
 
 ---
 
@@ -1056,19 +1129,11 @@ Obtiene las reseñas más relevantes ("trending") en una ventana de tiempo recie
 
 ### Validaciones de los query params
 
-- limit  
-  - opcional  
-  - se interpreta como número si viene en formato string  
-  - si no es un número válido, o es `<= 0`, o es `> 50`, se usa el valor por defecto `10`  
-  - valor por defecto: 10  
-
-- days  
-  - opcional  
-  - se interpreta como número si viene en formato string  
-  - si no es un número válido, o es `<= 0`, o es `> 30`, se usa el valor por defecto `7`  
-  - valor por defecto: 7  
-
-> Nota: si los parámetros son inválidos, el backend **normaliza** los valores (no retorna 400).
+- `limit`: entero entre 1 y 50; default 10 solo si no se envía.
+- `days`: entero entre 1 y 30; default 7 solo si no se envía.
+- Valores presentes inválidos, vacíos, repetidos, fraccionarios o fuera de rango devuelven `400 VALIDATION_ERROR`. Las query adicionales se ignoran.
+- La ventana temporal se aplica tanto a la creación de la reseña como a la creación de los votos sumados. Orden: `voteScore` descendente y fecha de reseña descendente. Sin votos, `voteScore` vale 0.
+- Devuelve usuario básico sin email. No incluye `userVote`, cantidad de comentarios ni un summary desglosado de votos; esos datos están disponibles en los endpoints de Reviews.
 
 **Response 200:**
 
@@ -1116,7 +1181,8 @@ Obtiene las reseñas más relevantes ("trending") en una ventana de tiempo recie
 
 **Posibles errores:**
 
-- 500 — Internal server error
+- 400 — VALIDATION_ERROR (query inválido)
+- 500 — INTERNAL_ERROR
 
 ---
 
@@ -1789,7 +1855,7 @@ Solo puede ser ejecutado por:
 - Solo se permite continuar si:
   - el usuario autenticado es el dueño de la reseña (`existing.userId === sub`), **o**
   - el usuario tiene rol `"ADMIN"`.  
-- Si no se cumple lo anterior → `403 No autorizado para modificar esta reseña`.
+- Si no se cumple lo anterior → `403 FORBIDDEN`, con mensaje `No autorizado para modificar o eliminar esta reseña`.
 
 **Response 200:**
 
@@ -1852,7 +1918,7 @@ _No requiere body._
 - Solo se permite eliminar si:
   - el usuario autenticado es el dueño de la reseña (`existing.userId === sub`), **o**
   - el usuario tiene rol `"ADMIN"`.  
-- Si no se cumple lo anterior → `403 No autorizado para eliminar esta reseña`.
+- Si no se cumple lo anterior → `403 FORBIDDEN`, con mensaje `No autorizado para modificar o eliminar esta reseña`.
 
 **Response 204:**
 

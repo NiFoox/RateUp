@@ -34,3 +34,10 @@ Authorization: Bearer PASTE_ADMIN_JWT_TOKEN_HERE
 ### Borrar un game (requiere ADMIN)
 DELETE http://localhost:3000/api/games/1
 Authorization: Bearer PASTE_ADMIN_JWT_TOKEN_HERE
+
+
+### all=true no omite validación de page/limit: 400 VALIDATION_ERROR
+GET http://localhost:3000/api/games?all=true&page=1.7
+
+### Género exacto; búsqueda sin distinguir mayúsculas
+GET http://localhost:3000/api/games?all=true&search=gta&genre=action

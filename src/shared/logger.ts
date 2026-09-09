@@ -1,10 +1,11 @@
 import pino from 'pino';
+import { config } from './config.js';
 
-const isDev = process.env.NODE_ENV !== 'production';
+const isDev = config.nodeEnv !== 'production';
 const isTTY = process.stdout.isTTY === true;
 
 export const logger = pino({
-  level: process.env.LOG_LEVEL || (isDev ? 'debug' : 'info'),
+  level: config.logLevel,
   base: undefined, // { app: 'rateup-api' } sino
   transport:
     isDev && isTTY
