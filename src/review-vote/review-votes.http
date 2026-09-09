@@ -27,3 +27,32 @@ Authorization: Bearer PASTE_JWT_TOKEN_HERE
 ### Quitar mi voto a esa review (requiere usuario logueado)
 DELETE http://localhost:3000/api/reviews/1/votes
 Authorization: Bearer PASTE_JWT_TOKEN_HERE
+
+
+### Quitar voto otra vez: 200, deleted false si ya no existe
+DELETE http://localhost:3000/api/reviews/1/votes
+Authorization: Bearer PASTE_JWT_TOKEN_HERE
+
+### Review inexistente: 200, summary y userVote en cero
+GET http://localhost:3000/api/reviews/2147483647/votes
+
+### Votar review inexistente: 404 REVIEW_NOT_FOUND, field reviewId
+POST http://localhost:3000/api/reviews/2147483647/votes
+Authorization: Bearer PASTE_JWT_TOKEN_HERE
+Content-Type: application/json
+
+{"value":1}
+
+### Review inexistente: 200, deleted false y summary en cero
+DELETE http://localhost:3000/api/reviews/2147483647/votes
+Authorization: Bearer PASTE_JWT_TOKEN_HERE
+
+### ID fuera de SERIAL: 400 VALIDATION_ERROR
+GET http://localhost:3000/api/reviews/2147483648/votes
+
+### Body estricto: 400 VALIDATION_ERROR (no aceptar identidad del cliente)
+POST http://localhost:3000/api/reviews/1/votes
+Authorization: Bearer PASTE_JWT_TOKEN_HERE
+Content-Type: application/json
+
+{"value":1,"userId":2}

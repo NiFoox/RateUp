@@ -37,13 +37,13 @@ app.use('/api/reviews',   buildReviewRouter(
 // comentarios de review
 app.use(
   '/api/reviews/:reviewId/comments',
-  buildReviewCommentRouter(container.reviewCommentRepository, container.authMiddleware),
+  buildReviewCommentRouter(container.reviewCommentService, container.authMiddleware),
 );
 
 // votos de review
 app.use(
   '/api/reviews/:reviewId/votes',
-  buildReviewVoteRouter(container.reviewVoteRepository, container.authMiddleware),
+  buildReviewVoteRouter(container.reviewVoteService, container.authMiddleware),
 );
 
 app.use('/api/users', buildUserRouter(container.userService, container.authMiddleware));
@@ -71,7 +71,6 @@ export default app;
 // - Más tests
 // - Levantar api en docker?
 // - Probar llamar api externa?
-// - Agregar total en comments/details para que soporte paginación
 // - Refactorizar PATCH de Users
 // - Refactorizar controllers para no repetir tanto el parseo/validación de dto
 // - Refactorizar los servicios para que lancen errores específicos y no genéricos

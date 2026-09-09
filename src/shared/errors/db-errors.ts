@@ -5,10 +5,23 @@ export function mapPostgresErrorToDomainError(error: unknown): DomainError | nul
     typeof error !== 'object' ||
     error === null ||
     !('code' in error) ||
-    error.code !== '23505' ||
+    (error.code !== '23505' && error.code !== '23503') ||
     !('constraint' in error)
   ) {
     return null;
+  }
+
+  if (error.code === '23503') {
+    switch (error.constraint) {
+      case 'review_comments_review_id_fkey':
+      case 'review_votes_review_id_fkey':
+        return new DomainError('REVIEW_NOT_FOUND', 'Review not found', 404, 'reviewId');
+      case 'review_comments_user_id_fkey':
+      case 'review_votes_user_id_fkey':
+        return new DomainError('USER_NOT_FOUND', 'User not found', 404, 'userId');
+      default:
+        return null;
+    }
   }
 
   switch (error.constraint) {

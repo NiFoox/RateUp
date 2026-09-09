@@ -1,22 +1,13 @@
 import { Router } from 'express';
-import {
-  validateBody,
-  validateParams,
-} from '../shared/middlewares/validate.js';
+import { validateBody, validateParams } from '../shared/middlewares/validate.js';
 import type { AuthMiddleware } from '../shared/middlewares/auth.js';
 import { ReviewVoteController } from './review-vote.controller.js';
-import {
-  ReviewVoteParamsSchema,
-  ReviewVoteBodySchema,
-} from './validators/review-vote.validation.js';
-import type { ReviewVoteRepository } from './review-vote.repository.interface.js';
+import { ReviewVoteParamsSchema, ReviewVoteBodySchema } from './dto/review-vote.dto.js';
+import type { ReviewVoteService } from './review-vote.service.js';
 
-export default function buildReviewVoteRouter(
-  repository: ReviewVoteRepository,
-  auth: AuthMiddleware,
-) {
+export default function buildReviewVoteRouter(service: ReviewVoteService, auth: AuthMiddleware) {
   const router = Router({ mergeParams: true });
-  const controller = new ReviewVoteController(repository);
+  const controller = new ReviewVoteController(service);
 
   // GET resumen de votos - público
   // GET /api/reviews/:reviewId/votes

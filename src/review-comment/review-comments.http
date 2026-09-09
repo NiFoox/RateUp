@@ -11,7 +11,7 @@ Authorization: Bearer PASTE_JWT_TOKEN_HERE
 GET http://localhost:3000/api/reviews/1/comments?page=1&pageSize=10
 Content-Type: application/json
 
-### Listar comentarios de una review con datos de usuario (details)
+### Details: count = cantidad de esta página, total = cantidad en toda la review
 GET http://localhost:3000/api/reviews/1/comments/details?page=1&pageSize=10
 Content-Type: application/json
 
@@ -31,3 +31,35 @@ Content-Type: application/json
 ### Borrar un comentario (solo owner o ADMIN)
 DELETE http://localhost:3000/api/reviews/1/comments/1
 Authorization: Bearer PASTE_JWT_TOKEN_HERE
+
+
+### Paginación inválida: 400 VALIDATION_ERROR
+GET http://localhost:3000/api/reviews/1/comments?page=1.7
+
+### Tamaño máximo 100; 101 devuelve 400 VALIDATION_ERROR
+GET http://localhost:3000/api/reviews/1/comments/details?pageSize=101
+
+### Segunda página: conservar total aunque data esté vacío
+GET http://localhost:3000/api/reviews/1/comments/details?page=2&pageSize=2
+
+### ID fuera de SERIAL: 400 VALIDATION_ERROR
+GET http://localhost:3000/api/reviews/2147483648/comments
+
+### Crear sobre review inexistente: 404 REVIEW_NOT_FOUND, field reviewId
+# Usar un ID válido que no exista en la base.
+POST http://localhost:3000/api/reviews/2147483647/comments
+Authorization: Bearer PASTE_JWT_TOKEN_HERE
+Content-Type: application/json
+
+{"content":"No se puede comentar una review inexistente"}
+
+### Review inexistente: listado público 200 con count/total 0 y data []
+GET http://localhost:3000/api/reviews/2147483647/comments/details
+
+### Comentario inexistente: 404 COMMENT_NOT_FOUND
+# El mismo error se devuelve si el comentario pertenece a otra review, incluso siendo ADMIN.
+PATCH http://localhost:3000/api/reviews/1/comments/2147483647
+Authorization: Bearer PASTE_JWT_TOKEN_HERE
+Content-Type: application/json
+
+{"content":"Edición"}

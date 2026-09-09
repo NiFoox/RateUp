@@ -1699,7 +1699,7 @@ _No requiere body._
 Donde:
 
 - `comments.total`: cantidad total de comentarios que tiene la reseña.  
-- `comments.data`: página de comentarios según `commentsPage` y `commentsPageSize`.  
+- `comments.data`: página de comentarios según `commentsPage` y `commentsPageSize`, ordenados por fecha de creación ascendente e ID ascendente para desempatar.
 - `votes`:
   - `reviewId`: id de la reseña a la que pertenecen estos votos  
   - `upvotes`: cantidad de votos positivos  
@@ -1869,6 +1869,20 @@ _No content._
 
 # Comentarios de Reviews
 
+Todos los IDs de estas rutas (`reviewId`, `commentId`) deben ser enteros entre **1 y 2147483647** (rango positivo de `SERIAL`). Se convierten desde el path; los valores fuera de rango devuelven 400.
+
+Los errores usan el middleware común:
+
+- `400 VALIDATION_ERROR`: `{ message: "Validation error", code, formErrors, fieldErrors }`.
+- `401 UNAUTHENTICATED`: sesión ausente, inválida o usuario desactivado en rutas protegidas; mensaje `No autenticado o sesión inválida`.
+- `403 FORBIDDEN`: sesión válida sin permiso de dueño o ADMIN; se conservan los mensajes específicos de modificación/borrado de comentarios.
+- `404 COMMENT_NOT_FOUND`: `Comment not found`; comentario inexistente o que pertenece a otra review.
+- `404 REVIEW_NOT_FOUND`: `Review not found`, con `field: "reviewId"`, cuando se intenta crear un comentario o voto sobre una review inexistente.
+- `404 USER_NOT_FOUND`: `User not found`, con `field: "userId"`, si el usuario fue eliminado entre la autenticación y la escritura.
+- `500 INTERNAL_ERROR`: `Internal server error`, sin detalles internos. JSON mal formado devuelve `400 INVALID_JSON` y un body demasiado grande `413 PAYLOAD_TOO_LARGE`.
+
+Los errores de dominio tienen la forma `{ message, code, field? }`. Los roles se toman del usuario vigente en PostgreSQL mediante Auth, no de permisos antiguos del JWT. Los listados de comentarios son públicos; GET de votos usa autenticación opcional.
+
 ## POST `/reviews/:reviewId/comments`
 
 Crea un nuevo comentario en una reseña.  
@@ -1887,7 +1901,7 @@ Requiere usuario autenticado.
 - reviewId  
   - obligatorio  
   - número entero  
-  - mayor que 0  
+  - entre 1 y 2147483647
 
 **Body:**
 
@@ -1914,7 +1928,7 @@ Requiere usuario autenticado.
 ### Reglas de autorización
 
 - Debe existir un usuario autenticado (`Authorization: Bearer <token>`).  
-- Si no hay usuario autenticado → `401 Not authenticated`.
+- Si no hay usuario autenticado → `401 UNAUTHENTICATED`.
 
 **Response 201:**
 
@@ -1931,9 +1945,10 @@ Requiere usuario autenticado.
 
 **Posibles errores:**
 
-- 400 — Invalid data (errores de validación del body/params)  
-- 401 — Not authenticated  
-- 500 — Internal server error
+- 400 — VALIDATION_ERROR (errores de validación del body/params)
+- 401 — UNAUTHENTICATED
+- 404 — REVIEW_NOT_FOUND (field: reviewId) o USER_NOT_FOUND (field: userId)
+- 500 — INTERNAL_ERROR
 
 ---
 
@@ -1950,7 +1965,7 @@ Lista comentarios de una reseña, con paginación simple.
 - reviewId  
   - obligatorio  
   - número entero  
-  - mayor que 0  
+  - entre 1 y 2147483647
 
 **Query params:**
 
@@ -1969,7 +1984,10 @@ Lista comentarios de una reseña, con paginación simple.
   - opcional  
   - número entero  
   - mínimo: 1  
+  - máximo: 100
   - valor por defecto: 10  
+
+Los defaults también se aplican a query vacíos o con espacios, como antes. `page=1.7`, `pageSize=101`, negativos o texto inválido devuelven 400. Query adicionales se ignoran. El orden es `createdAt ASC, id ASC`: el ID desempata fechas iguales y evita un orden ambiguo entre páginas.
 
 **Body:**
 
@@ -2003,12 +2021,12 @@ _No requiere body._
 }
 ```
 
-> Nota: si no hay comentarios para la reseña, se devuelve `data` como un array vacío.
+> Nota: si no hay comentarios, la review no existe o la página excede el listado, devuelve 200 con `data: []`. Este endpoint conserva su respuesta sin `count` ni `total`.
 
 **Posibles errores:**
 
-- 400 — Parámetros inválidos (validación de params/query)  
-- 500 — Error interno del servidor
+- 400 — VALIDATION_ERROR (validación de params/query)
+- 500 — INTERNAL_ERROR
 
 ---
 
@@ -2025,7 +2043,7 @@ Lista comentarios de una reseña, incluyendo la información básica del usuario
 - reviewId  
   - obligatorio  
   - número entero  
-  - mayor que 0  
+  - entre 1 y 2147483647
 
 **Query params:**
 
@@ -2044,7 +2062,10 @@ Lista comentarios de una reseña, incluyendo la información básica del usuario
   - opcional  
   - número entero  
   - mínimo: 1  
+  - máximo: 100
   - valor por defecto: 10  
+
+Los defaults también se aplican a query vacíos o con espacios, como antes. `page=1.7`, `pageSize=101`, negativos o texto inválido devuelven 400. Query adicionales se ignoran. El orden es `createdAt ASC, id ASC`: el ID desempata fechas iguales y evita un orden ambiguo entre páginas.
 
 **Body:**
 
@@ -2058,6 +2079,7 @@ _No requiere body._
   "page": 1,
   "pageSize": 10,
   "count": 2,
+  "total": 2,
   "data": [
     {
       "id": 1,
@@ -2087,13 +2109,16 @@ _No requiere body._
 
 Donde:
 
+- `total`: cantidad total de comentarios de la reseña, independientemente de la página. Angular debe priorizar `total` sobre `count` para paginar.
 - `count`: cantidad de comentarios devueltos en esta página (igual a `data.length`).  
 - `data`: lista de comentarios con información del usuario que los creó.
 
 **Posibles errores:**
 
-- 400 — Invalid data (errores de validación en params/query)  
-- 500 — Internal server error
+- 400 — VALIDATION_ERROR (errores de validación en params/query)
+- 500 — INTERNAL_ERROR
+
+Si la review no existe, devuelve 200 con `data: []`, `count: 0` y `total: 0`. Una página fuera del listado conserva el total real, con `count: 0` y `data: []`.
 
 ---
 
@@ -2119,12 +2144,12 @@ Solo puede ser ejecutado por:
 - reviewId  
   - obligatorio  
   - número entero  
-  - mayor que 0  
+  - entre 1 y 2147483647
 
 - commentId  
   - obligatorio  
   - número entero  
-  - mayor que 0  
+  - entre 1 y 2147483647
 
 **Body:**
 
@@ -2155,7 +2180,7 @@ Solo puede ser ejecutado por:
 
 - Debe existir un usuario autenticado (`Authorization: Bearer <token>`).  
 - Se busca el comentario por `commentId`:
-  - si no existe, o su `reviewId` no coincide con el del path → `404 Comment not found`.  
+  - si no existe, o su `reviewId` no coincide con el del path → `404 COMMENT_NOT_FOUND`.
 - Solo se permite continuar si:
   - el usuario autenticado es el dueño del comentario (`existing.userId === sub`), **o**
   - el usuario tiene rol `"ADMIN"`.  
@@ -2176,11 +2201,11 @@ Solo puede ser ejecutado por:
 
 **Posibles errores:**
 
-- 400 — Invalid data (errores de validación en params/body)  
-- 401 — Not authenticated  
-- 403 — Not authorized to modify this comment  
-- 404 — Comment not found  
-- 500 — Internal server error
+- 400 — VALIDATION_ERROR (errores de validación en params/body)
+- 401 — UNAUTHENTICATED
+- 403 — FORBIDDEN: Not authorized to modify this comment
+- 404 — COMMENT_NOT_FOUND: Comment not found
+- 500 — INTERNAL_ERROR
 
 ---
 
@@ -2206,12 +2231,12 @@ Solo puede ser ejecutado por:
 - reviewId  
   - obligatorio  
   - número entero  
-  - mayor que 0  
+  - entre 1 y 2147483647
 
 - commentId  
   - obligatorio  
   - número entero  
-  - mayor que 0  
+  - entre 1 y 2147483647
 
 **Body:**
 
@@ -2221,7 +2246,7 @@ _No requiere body._
 
 - Debe existir un usuario autenticado (`Authorization: Bearer <token>`).  
 - Se busca el comentario por `commentId`:
-  - si no existe, o su `reviewId` no coincide con el del path → `404 Comment not found`.  
+  - si no existe, o su `reviewId` no coincide con el del path → `404 COMMENT_NOT_FOUND`.
 - Solo se permite eliminar si:
   - el usuario autenticado es el dueño del comentario (`existing.userId === sub`), **o**
   - el usuario tiene rol `"ADMIN"`.  
@@ -2235,10 +2260,11 @@ _No content._
 
 **Posibles errores:**
 
-- 401 — Not authenticated  
-- 403 — Not authorized to delete this comment  
-- 404 — Comment not found  
-- 500 — Internal server error
+- 400 — VALIDATION_ERROR (params inválidos)
+- 401 — UNAUTHENTICATED
+- 403 — FORBIDDEN: Not authorized to delete this comment
+- 404 — COMMENT_NOT_FOUND: Comment not found
+- 500 — INTERNAL_ERROR
 
 ---
 
@@ -2263,7 +2289,7 @@ Si no se envía header `Authorization`, o el token es inválido, la request se t
 - reviewId  
   - obligatorio  
   - número entero  
-  - mayor que 0  
+  - entre 1 y 2147483647
 
 **Body:**
 
@@ -2294,9 +2320,12 @@ Donde:
   - `-1` → el usuario autenticado hizo downvote  
   - `0`  → el usuario autenticado no votó la reseña, o no hay usuario autenticado  
 
+Una review inexistente conserva el resultado 200 con `reviewId` solicitado y todos los contadores y `userVote` en 0. Una sesión inválida o desactivada se trata como anónima; un fallo de infraestructura devuelve 500.
+
 **Posibles errores:**
 
-- 500 — Internal server error
+- 400 — VALIDATION_ERROR (params inválidos)
+- 500 — INTERNAL_ERROR
 
 ---
 
@@ -2318,7 +2347,7 @@ Si el usuario ya había votado esa reseña, el voto se actualiza.
 - reviewId  
   - obligatorio  
   - número entero  
-  - mayor que 0  
+  - entre 1 y 2147483647
 
 **Body:**
 
@@ -2339,15 +2368,15 @@ Si el usuario ya había votado esa reseña, el voto se actualiza.
 ### Notas adicionales del body
 
 - No se permiten campos adicionales fuera de `value` (el esquema es `.strict()`).
-- No se acepta `0` como valor; para “quitar” un voto deberá implementarse otro endpoint (no es responsabilidad de este).
+- No se acepta `0` ni strings como `"1"` como valor; para quitar el voto se usa `DELETE /reviews/:reviewId/votes`.
 - El `userId` **no** se envía en el body:
   - se obtiene del token JWT (`sub` del usuario autenticado).
 
 ### Reglas de autorización
 
 - Debe existir un usuario autenticado (`Authorization: Bearer <token>`).  
-- Si no hay usuario autenticado → `401 Not authenticated`.
-- Si la `reviewId` no existe (violación de foreign key en BD) → `404 Review not found`.
+- Si no hay usuario autenticado → `401 UNAUTHENTICATED`.
+- Si la `reviewId` no existe (violación de foreign key en BD) → `404 REVIEW_NOT_FOUND`, con `field: "reviewId"`.
 
 ---
 
@@ -2375,10 +2404,10 @@ Donde:
 
 **Posibles errores:**
 
-- 400 — Invalid data (errores de validación en params/body)  
-- 401 — Not authenticated  
-- 404 — Review not found  
-- 500 — Internal server error
+- 400 — VALIDATION_ERROR (errores de validación en params/body)
+- 401 — UNAUTHENTICATED
+- 404 — REVIEW_NOT_FOUND (field: reviewId) o USER_NOT_FOUND (field: userId)
+- 500 — INTERNAL_ERROR
 
 ---
 
@@ -2399,7 +2428,7 @@ Elimina el voto del usuario autenticado sobre una reseña (si existe).
 - reviewId  
   - obligatorio  
   - número entero  
-  - mayor que 0  
+  - entre 1 y 2147483647
 
 **Body:**
 
@@ -2409,7 +2438,7 @@ _No requiere body._
 
 - Debe existir un usuario autenticado (`Authorization: Bearer <token>`).  
 - El `userId` se obtiene del token (`sub` del usuario autenticado).  
-- Si no hay usuario autenticado → `401 Not authenticated`.
+- Si no hay usuario autenticado → `401 UNAUTHENTICATED`.
 
 ---
 
@@ -2435,10 +2464,12 @@ Donde:
 - `downvotes`: cantidad total de votos negativos después de la operación.  
 - `score`: suma total de los votos (`upvotes - downvotes`) después de la operación.
 
+Quitar un voto que no existe sigue devolviendo 200 con `deleted: false`. Esto incluye una review inexistente, cuyo resumen queda en cero. Repetir el DELETE no crea un error ni cambia el resultado final (operación idempotente).
+
 **Posibles errores:**
 
-- 400 — Invalid data (errores de validación en params)  
-- 401 — Not authenticated  
-- 500 — Internal server error
+- 400 — VALIDATION_ERROR (errores de validación en params)
+- 401 — UNAUTHENTICATED
+- 500 — INTERNAL_ERROR
 
 ---

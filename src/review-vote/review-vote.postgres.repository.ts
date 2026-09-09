@@ -2,26 +2,27 @@ import { Pool } from 'pg';
 import { ReviewVote } from './review-vote.entity.js';
 import type { ReviewVoteRepository } from './review-vote.repository.interface.js';
 
-const mapRowToVote = (row: any): ReviewVote =>
-  new ReviewVote(
-    row.review_id,
-    row.user_id,
-    row.value,
-    row.id,
-    row.created_at,
-    row.updated_at,
-  );
+import { mapPostgresErrorToDomainError } from '../shared/errors/db-errors.js';
+import type { ReviewVoteSummaryDto } from './dto/review-vote.dto.js';
+
+interface VoteRow {
+  id: number;
+  review_id: number;
+  user_id: number;
+  value: 1 | -1;
+  created_at: Date;
+  updated_at: Date | null;
+}
+
+const mapRowToVote = (row: VoteRow): ReviewVote =>
+  new ReviewVote(row.review_id, row.user_id, row.value, row.id, row.created_at, row.updated_at);
 
 export class ReviewVotePostgresRepository implements ReviewVoteRepository {
   constructor(private readonly db: Pool) {}
 
-  async upsertVote(
-    reviewId: number,
-    userId: number,
-    value: 1 | -1,
-  ): Promise<ReviewVote> {
+  async upsertVote(reviewId: number, userId: number, value: 1 | -1): Promise<ReviewVote> {
     try {
-      const { rows } = await this.db.query(
+      const { rows } = await this.db.query<VoteRow>(
         `
         INSERT INTO review_votes (review_id, user_id, value)
         VALUES ($1, $2, $3)
@@ -33,9 +34,8 @@ export class ReviewVotePostgresRepository implements ReviewVoteRepository {
       );
 
       return mapRowToVote(rows[0]);
-    } catch (error) {
-      console.error('Error en ReviewVotePostgresRepository.upsertVote:', error);
-      throw error;
+    } catch (error: unknown) {
+      throw mapPostgresErrorToDomainError(error) ?? error;
     }
   }
 
@@ -51,12 +51,8 @@ export class ReviewVotePostgresRepository implements ReviewVoteRepository {
     return (rowCount ?? 0) > 0;
   }
 
-  async getSummary(reviewId: number): Promise<{
-    upvotes: number;
-    downvotes: number;
-    score: number;
-  }> {
-    const { rows } = await this.db.query(
+  async getSummary(reviewId: number): Promise<ReviewVoteSummaryDto> {
+    const { rows } = await this.db.query<{ upvotes: string; downvotes: string; score: string }>(
       `
       SELECT
         COUNT(*) FILTER (WHERE value = 1)  AS upvotes,
@@ -78,7 +74,7 @@ export class ReviewVotePostgresRepository implements ReviewVoteRepository {
   }
 
   async getUserVote(reviewId: number, userId: number): Promise<-1 | 0 | 1> {
-    const { rows } = await this.db.query(
+    const { rows } = await this.db.query<Pick<VoteRow, 'value'>>(
       `
       SELECT value
       FROM review_votes

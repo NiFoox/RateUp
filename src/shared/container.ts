@@ -1,3 +1,5 @@
+import { ReviewCommentService } from '../review-comment/review-comment.service.js';
+import { ReviewVoteService } from '../review-vote/review-vote.service.js';
 import { createPgPool } from './db.js';
 import { GamePostgresRepository } from '../game/game.postgres.repository.js';
 import { GameService } from '../game/game.service.js';
@@ -24,7 +26,12 @@ const reviewVoteRepository = new ReviewVotePostgresRepository(pool);
 
 const reviewService = new ReviewService(reviewRepository, reviewCommentRepository, reviewVoteRepository);
 
+const reviewCommentService = new ReviewCommentService(reviewCommentRepository);
+const reviewVoteService = new ReviewVoteService(reviewVoteRepository);
+
 export const container = {
+  reviewCommentService,
+  reviewVoteService,
   reviewService,
   gameRepository,
   gameService,

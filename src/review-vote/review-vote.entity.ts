@@ -5,6 +5,6 @@ export class ReviewVote {
     public value: 1 | -1,
     public id?: number,
     public createdAt?: Date,
-    public updatedAt?: Date,
+    public updatedAt?: Date | null,
   ) {}
 }
